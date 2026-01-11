@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants/theme'
+import { useAudio } from '@/contexts/AudioContext'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
@@ -9,8 +10,39 @@ const { width, height } = Dimensions.get('window');
 
 const PlayerModal = () => {
     const router = useRouter();
-    const [isPlaying, setIsPlaying] = useState(true);
+    const {
+        currentTrack,
+        isPlaying,
+        playTrack,
+        pauseTrack,
+        resumeTrack,
+        playlist,
+        playNext,
+        playPrev,
+        shuffleOn,
+        repeatMode,
+        toggleShuffle,
+        toggleRepeat
+    } = useAudio();
     const [isLiked, setIsLiked] = useState(false);
+
+    // Helper for Loop Icon
+    const getRepeatIcon = () => {
+        if (repeatMode === 'ONE') return 'repeat-once';
+        if (repeatMode === 'ALL') return 'repeat';
+        return 'repeat-off'; // MaterialCommunityIcons
+    };
+
+    if (!currentTrack) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: '#FFF' }}>No track playing</Text>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+                    <Text style={{ color: COLORS.primary }}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -42,8 +74,8 @@ const PlayerModal = () => {
             {/* Track Info */}
             <View style={styles.trackInfoContainer}>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.trackTitle}>Midnight City</Text>
-                    <Text style={styles.artistName}>M83</Text>
+                    <Text style={styles.trackTitle} numberOfLines={1}>{currentTrack.title}</Text>
+                    <Text style={styles.artistName} numberOfLines={1}>{currentTrack.artist}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setIsLiked(!isLiked)}>
                     <Ionicons
@@ -71,25 +103,25 @@ const PlayerModal = () => {
                     <View style={[styles.progressBarFill, { width: '45%' }]} />
                 </View>
                 <View style={styles.timeRow}>
-                    <Text style={styles.timeText}>1:45</Text>
-                    <Text style={styles.timeText}>4:03</Text>
+                    <Text style={styles.timeText}>0:00</Text>
+                    <Text style={styles.timeText}>{(currentTrack.duration / 60).toFixed(2)}</Text>
                 </View>
             </View>
 
             {/* Controls */}
             <View style={styles.controlsContainer}>
-                <TouchableOpacity>
-                    <Ionicons name="shuffle" size={24} color="rgba(255,255,255,0.7)" />
+                <TouchableOpacity onPress={toggleShuffle}>
+                    <Ionicons name="shuffle" size={24} color={shuffleOn ? COLORS.primary : "rgba(255,255,255,0.7)"} />
                 </TouchableOpacity>
 
                 <View style={styles.mainControls}>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={playPrev}>
                         <Ionicons name="play-skip-back" size={32} color="#FFF" />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={styles.playButton}
-                        onPress={() => setIsPlaying(!isPlaying)}
+                        onPress={() => isPlaying ? pauseTrack() : resumeTrack()}
                         activeOpacity={0.8}
                     >
                         <LinearGradient
@@ -100,13 +132,13 @@ const PlayerModal = () => {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={playNext}>
                         <Ionicons name="play-skip-forward" size={32} color="#FFF" />
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity>
-                    <MaterialCommunityIcons name="repeat" size={24} color={COLORS.primary} />
+                <TouchableOpacity onPress={toggleRepeat}>
+                    <MaterialCommunityIcons name={getRepeatIcon()} size={24} color={repeatMode !== 'OFF' ? COLORS.primary : "rgba(255,255,255,0.7)"} />
                 </TouchableOpacity>
             </View>
 
@@ -265,4 +297,4 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
-})
+});

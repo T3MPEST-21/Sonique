@@ -1,108 +1,136 @@
-import { COLORS } from '@/constants/theme'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { COLORS } from '@/constants/theme';
+import { Track, useAudio } from '@/contexts/AudioContext';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
-
-const TRACKS = [
-  {
-    id: '1',
-    title: 'Midnight City',
-    artist: 'M83 • Hurry Up, We\'re Dreaming',
-    image: require('@/assets/images/energetic_mood_1768080617113.png'), // Placeholder
-    isDownloaded: true,
-    moodColor: '#3498db',
-  },
-  {
-    id: '2',
-    title: 'Space Song',
-    artist: 'Beach House • Depression Cherry',
-    image: require('@/assets/images/chill_mood_1768080634061.png'), // Placeholder
-    isDownloaded: false,
-    moodColor: '#9b59b6',
-  },
-  {
-    id: '3',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd • After Hours',
-    image: require('@/assets/images/party_mood_1768080705615.png'), // Placeholder
-    isDownloaded: true,
-    moodColor: '#e74c3c',
-  },
-  {
-    id: '4',
-    title: 'Weightless',
-    artist: 'Marconi Union • Weightless (Ambient)',
-    image: require('@/assets/images/focus_mood_1768080676224.png'), // Placeholder
-    isDownloaded: true,
-    moodColor: '#3498db',
-  },
-  {
-    id: '5',
-    title: 'Resonance',
-    artist: 'Home • Odyssey',
-    image: require('@/assets/images/sleepy_mood_1768080726139.png'), // Placeholder
-    isDownloaded: true,
-    moodColor: '#f1c40f',
-  },
-];
 
 const FILTERS = ['All Moods', 'Calm', 'Energetic', 'Melancholic', 'Focus', 'Workout'];
 
 const LibraryScreen = () => {
   const router = useRouter();
+  const {
+    loadLocalMusic,
+    playlist,
+    currentTrack,
+    playTrack,
+    isPlaying,
+    pauseTrack,
+    resumeTrack,
+    customPlaylists,
+    addToPlaylist
+  } = useAudio();
   const [isOnline, setIsOnline] = useState(true);
   const [activeFilter, setActiveFilter] = useState('Calm');
 
+  // Menu & Sorting State
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [sortBy, setSortBy] = useState<'title' | 'date' | 'duration'>('title');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Selection Mode
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTracks, setSelectedTracks] = useState<string[]>([]); // Track IDs
+  const [playlistPickerVisible, setPlaylistPickerVisible] = useState(false);
+
+  useEffect(() => {
+    loadLocalMusic();
+  }, []);
+
+  // Derived State: Sorted Playlist
+  const sortedPlaylist = useMemo(() => {
+    let sorted = [...playlist];
+    if (sortBy === 'title') {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy === 'date') {
+      sorted.sort((a, b) => (a.modificationTime || 0) - (b.modificationTime || 0));
+    } else if (sortBy === 'duration') {
+      sorted.sort((a, b) => a.duration - b.duration);
+    }
+
+    if (sortOrder === 'desc') {
+      sorted.reverse();
+    }
+    return sorted;
+  }, [playlist, sortBy, sortOrder]);
+
+  const handleSort = (type: 'title' | 'date' | 'duration') => {
+    if (sortBy === type) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(type);
+      setSortOrder('asc');
+    }
+    setMenuVisible(false);
+  };
+
+  const handleRefresh = async () => {
+    setMenuVisible(false);
+    await loadLocalMusic();
+  };
+
+  const toggleSelection = (trackId: string) => {
+    setSelectedTracks(prev => {
+      if (prev.includes(trackId)) {
+        return prev.filter(id => id !== trackId);
+      } else {
+        return [...prev, trackId];
+      }
+    });
+  };
+
+  const handleAddToPlaylist = async (playlistId: string) => {
+    const targetPlaylist = customPlaylists.find(p => p.id === playlistId);
+    if (!targetPlaylist) return;
+
+    // Find track objects
+    const tracksToAdd = playlist.filter(t => selectedTracks.includes(t.id));
+
+    for (const track of tracksToAdd) {
+      await addToPlaylist(playlistId, track);
+    }
+
+    setPlaylistPickerVisible(false);
+    setIsSelectionMode(false);
+    setSelectedTracks([]);
+    Alert.alert("Success", `Added ${tracksToAdd.length} songs to ${targetPlaylist.name}`);
+  };
+
   const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-vertical" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+    <View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Your Library</Text>
 
-      <View style={styles.titleContainer}>
-        <View>
-          <Text style={styles.moodDetected}>MOOD DETECTED: CALM</Text>
-          <Text style={styles.headerTitle}>My Library</Text>
-        </View>
-        {/* Gradient Orb Decoration */}
-        <LinearGradient
-          colors={[COLORS.primary, 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.orb}
-        />
-      </View>
+        <View style={styles.headerActions}>
+          {/* Toggle Buttons (Hide in Selection Mode?) */}
+          {!isSelectionMode && (
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, isOnline && styles.toggleActive]}
+                onPress={() => setIsOnline(true)}
+              >
+                <Ionicons name="cloud" size={16} color={isOnline ? '#FFF' : 'rgba(255,255,255,0.5)'} />
+                <Text style={[styles.toggleText, isOnline && styles.toggleTextActive]}>Online</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, !isOnline && styles.toggleActive]}
+                onPress={() => setIsOnline(false)}
+              >
+                <Ionicons name="checkmark-circle" size={16} color={!isOnline ? '#FFF' : 'rgba(255,255,255,0.5)'} />
+                <Text style={[styles.toggleText, !isOnline && styles.toggleTextActive]}>Offline</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-      {/* Toggle */}
-      <View style={styles.toggleContainer}>
-        <View style={styles.toggleWrapper}>
-          <TouchableOpacity
-            style={[styles.toggleButton, isOnline && styles.toggleActive]}
-            onPress={() => setIsOnline(true)}
-          >
-            <Ionicons name="cloud-outline" size={16} color="#FFF" />
-            <Text style={styles.toggleText}>Online</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, !isOnline && styles.toggleActive]}
-            onPress={() => setIsOnline(false)}
-          >
-            <Ionicons name="checkmark" size={16} color="rgba(255,255,255,0.5)" />
-            <Text style={[styles.toggleText, { color: 'rgba(255,255,255,0.5)' }]}>Offline</Text>
+          {/* Menu Button */}
+          <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
+            <Ionicons name="ellipsis-vertical" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="rgba(255,255,255,0.4)" />
         <TextInput
@@ -111,266 +139,395 @@ const LibraryScreen = () => {
           style={styles.searchInput}
         />
       </View>
-
-      {/* Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-        {FILTERS.map((filter, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-            onPress={() => setActiveFilter(filter)}
-          >
-            <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
     </View>
   );
 
-  const renderTrackItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.trackItem} activeOpacity={0.7}>
-      <Image source={item.image} style={styles.trackImage} />
+  const renderTrackItem = ({ item }: { item: Track }) => {
+    const isCurrent = currentTrack?.id === item.id;
+    const isSelected = selectedTracks.includes(item.id);
 
-      <View style={styles.trackInfo}>
-        <View style={styles.titleRow}>
-          <Text style={styles.trackTitle}>{item.title}</Text>
-          {/* Tiny mood dot */}
-          <View style={[styles.moodDot, { backgroundColor: item.moodColor }]} />
+    return (
+      <TouchableOpacity
+        style={[
+          styles.trackItem,
+          isCurrent && { backgroundColor: 'rgba(108, 99, 255, 0.1)' },
+          isSelected && { backgroundColor: 'rgba(108, 99, 255, 0.3)', borderColor: COLORS.primary, borderWidth: 1 }
+        ]}
+        onPress={() => {
+          if (isSelectionMode) {
+            toggleSelection(item.id);
+          } else {
+            playTrack(item, sortedPlaylist);
+          }
+        }}
+        onLongPress={() => {
+          if (!isSelectionMode) {
+            setIsSelectionMode(true);
+            toggleSelection(item.id);
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.trackArtContainer}>
+          <Image source={require('@/assets/images/chill_mood_1768080634061.png')} style={styles.trackArt} />
+          {!isSelectionMode && <View style={[styles.moodDot, { backgroundColor: COLORS.primary }]} />}
+          {isSelectionMode && (
+            <View style={[styles.selectionCircle, isSelected && styles.selectedCircle]}>
+              {isSelected && <Ionicons name="checkmark" size={12} color="#FFF" />}
+            </View>
+          )}
         </View>
-        <Text style={styles.artistName} numberOfLines={1}>{item.artist}</Text>
-      </View>
 
-      <View style={styles.trackActions}>
-        {item.isDownloaded && (
-          <View style={styles.downloadIcon}>
-            <Ionicons name="checkmark-circle" size={16} color="#2ecc71" />
+        <View style={styles.trackInfo}>
+          <Text style={[styles.trackTitle, isCurrent && { color: COLORS.primary }]} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.trackArtist}>{item.artist}</Text>
+        </View>
+
+        {/* Download/Offline Status */}
+        {!isSelectionMode && (
+          <View style={styles.trackActions}>
+            <Ionicons name="cloud-done" size={20} color={COLORS.primary} />
           </View>
         )}
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="dots-vertical" size={24} color="rgba(255,255,255,0.5)" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={TRACKS}
-          renderItem={renderTrackItem}
-          keyExtractor={item => item.id}
-          ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+      {/* Header */}
+      {renderHeader()}
+
+      {/* Filter Chips */}
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {FILTERS.map((filter, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.filterChip,
+                activeFilter === filter && styles.activeFilterChip
+              ]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[
+                styles.filterText,
+                activeFilter === filter && styles.activeFilterText
+              ]}>
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      {/* Mini Player */}
-      <TouchableOpacity
-        style={styles.miniPlayer}
-        activeOpacity={0.9}
-        onPress={() => router.push('/PlayerModal')}
+      {/* Track List */}
+      <FlatList
+        data={sortedPlaylist}
+        renderItem={renderTrackItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* Selection Action Bar */}
+      {isSelectionMode && (
+        <View style={styles.selectionBar}>
+          <Text style={styles.selectionCount}>{selectedTracks.length} Selected</Text>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity onPress={() => setIsSelectionMode(false)} style={styles.selectionButton}>
+              <Text style={styles.selectionButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setPlaylistPickerVisible(true)}
+              style={[styles.selectionButton, styles.primarySelectionButton]}
+              disabled={selectedTracks.length === 0}
+            >
+              <Text style={[styles.selectionButtonText, { color: '#FFF' }]}>Add to Playlist</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Mini Player (Hide in selection mode) */}
+      {currentTrack && !isSelectionMode && (
+        <TouchableOpacity
+          style={styles.miniPlayer}
+          activeOpacity={0.9}
+          onPress={() => router.push('/PlayerModal')}
+        >
+          <View style={styles.progressBar} />
+          <View style={styles.playerContent}>
+            <Image source={require('@/assets/images/chill_mood_1768080634061.png')} style={styles.miniArt} />
+            <View style={styles.miniInfo}>
+              <Text style={styles.miniTitle} numberOfLines={1}>{currentTrack.title}</Text>
+              <Text style={styles.miniArtist} numberOfLines={1}>{currentTrack.artist}</Text>
+            </View>
+            <View style={styles.miniControls}>
+              <TouchableOpacity onPress={() => isPlaying ? pauseTrack() : resumeTrack()}>
+                <View style={styles.playButton}>
+                  <Ionicons name={isPlaying ? "pause" : "play"} size={20} color="#FFF" />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
       >
-        {/* Progress Line */}
-        <View style={styles.progressBar}>
-          <View style={{ width: '30%', height: '100%', backgroundColor: COLORS.primary }} />
-        </View>
+        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.menuContainer}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisible(false); setIsSelectionMode(!isSelectionMode); }}>
+                <Ionicons name="checkbox-outline" size={20} color="#FFF" />
+                <Text style={styles.menuText}>Select / Mark</Text>
+              </TouchableOpacity>
+              <View style={styles.divider} />
 
-        <View style={styles.playerContent}>
-          <Image source={require('@/assets/images/chill_mood_1768080634061.png')} style={styles.miniArt} />
-          <View style={styles.miniInfo}>
-            <Text style={styles.miniTitle}>Intro - The XX</Text>
-            <Text style={styles.miniArtist}>XX</Text>
-          </View>
+              <TouchableOpacity style={styles.menuItem} onPress={handleRefresh}>
+                <Ionicons name="refresh" size={20} color="#FFF" />
+                <Text style={styles.menuText}>Refresh Library</Text>
+              </TouchableOpacity>
+              <View style={styles.divider} />
 
-          <View style={styles.miniControls}>
-            <TouchableOpacity>
-              <Ionicons name="play-skip-back" size={24} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="pause" size={20} color="#FFF" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Ionicons name="play-skip-forward" size={24} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
+              <Text style={styles.menuHeader}>Sort By</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={() => handleSort('title')}>
+                <MaterialCommunityIcons name="sort-alphabetical-ascending" size={20} color={sortBy === 'title' ? COLORS.primary : "#FFF"} />
+                <Text style={[styles.menuText, sortBy === 'title' && { color: COLORS.primary }]}>Name {sortBy === 'title' && (sortOrder === 'asc' ? '(A-Z)' : '(Z-A)')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => handleSort('date')}>
+                <MaterialCommunityIcons name="calendar-clock" size={20} color={sortBy === 'date' ? COLORS.primary : "#FFF"} />
+                <Text style={[styles.menuText, sortBy === 'date' && { color: COLORS.primary }]}>Date {sortBy === 'date' && (sortOrder === 'asc' ? '(Oldest)' : '(Newest)')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => handleSort('duration')}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color={sortBy === 'duration' ? COLORS.primary : "#FFF"} />
+                <Text style={[styles.menuText, sortBy === 'duration' && { color: COLORS.primary }]}>Duration {sortBy === 'duration' && (sortOrder === 'asc' ? '(Shortest)' : '(Longest)')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Playlist Picker Modal */}
+      <Modal
+        visible={playlistPickerVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPlaylistPickerVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setPlaylistPickerVisible(false)}>
+          <View style={styles.bottomModalOverlay}>
+            <View style={styles.bottomSheet}>
+              <Text style={styles.bottomSheetTitle}>Add to Playlist</Text>
+              {customPlaylists.length === 0 ? (
+                <Text style={styles.emptyText}>No playlists created yet.</Text>
+              ) : (
+                <FlatList
+                  data={customPlaylists}
+                  keyExtractor={item => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.playlistOption} onPress={() => handleAddToPlaylist(item.id)}>
+                      <MaterialCommunityIcons name="playlist-music" size={24} color={COLORS.primary} />
+                      <Text style={styles.playlistOptionText}>{item.name}</Text>
+                      <Text style={styles.playlistOptionCount}>{item.tracks.length} songs</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+              <TouchableOpacity style={styles.closeButton} onPress={() => setPlaylistPickerVisible(false)}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
-  )
-}
-
-export default LibraryScreen
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundDark,
-  },
-  listContent: {
-    paddingBottom: 100, // Space for mini player
+    backgroundColor: '#0F0F13',
+    paddingTop: 30,
   },
   header: {
-    paddingTop: 50,
     paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 20,
-  },
-  titleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  moodDetected: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
-    marginBottom: 4,
-    letterSpacing: 1,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: '#FFF',
   },
-  orb: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    opacity: 0.8,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  menuButton: {
+    padding: 5,
   },
   toggleContainer: {
-    marginBottom: 20,
-  },
-  toggleWrapper: {
     flexDirection: 'row',
-    backgroundColor: '#1E1E2E',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
     padding: 4,
   },
   toggleButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    gap: 6,
   },
   toggleActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   toggleText: {
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
     fontWeight: '600',
+  },
+  toggleTextActive: {
     color: '#FFF',
   },
   searchContainer: {
+    marginHorizontal: 20,
+    marginBottom: 25,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E1E2E',
-    borderRadius: 12,
     paddingHorizontal: 15,
-    height: 50,
-    marginBottom: 20,
+    height: 45,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
     color: '#FFF',
-    height: '100%',
+    marginLeft: 10,
+    fontSize: 15,
   },
-  filterScroll: {
-    paddingRight: 20,
+  filterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 15,
     gap: 10,
-    paddingBottom: 10,
   },
   filterChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#1E1E2E',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  filterChipActive: {
+  activeFilterChip: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   filterText: {
     color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  activeFilterText: {
+    color: '#FFF',
     fontWeight: '600',
   },
-  filterTextActive: {
-    color: '#FFF',
+  listContent: {
+    paddingBottom: 100, // For mini player
+    paddingHorizontal: 20,
   },
   trackItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    backgroundColor: 'rgba(30, 30, 46, 0.4)',
-    paddingVertical: 10,
-    marginHorizontal: 20,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 12,
   },
-  trackImage: {
+  trackArtContainer: {
+    position: 'relative',
+  },
+  trackArt: {
     width: 50,
     height: 50,
     borderRadius: 8,
   },
+  moodDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#1E1E2E',
+  },
+  selectionCircle: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#FFF',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCircle: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
   trackInfo: {
     flex: 1,
     marginLeft: 15,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
   trackTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#FFF',
+    marginBottom: 4,
   },
-  moodDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  artistName: {
+  trackArtist: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.5)',
   },
   trackActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    marginLeft: 10,
   },
-  downloadIcon: {
-
-  },
-
-  // Mini Player
   miniPlayer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#1E1E2E',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.textPrimaryDark,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.08)',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
     elevation: 10,
   },
   progressBar: {
@@ -381,7 +538,7 @@ const styles = StyleSheet.create({
   playerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 12,
   },
   miniArt: {
     width: 40,
@@ -395,11 +552,11 @@ const styles = StyleSheet.create({
   },
   miniTitle: {
     color: '#FFF',
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
   },
   miniArtist: {
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 12,
   },
   miniControls: {
@@ -415,4 +572,145 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-})
+  // Menu Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'flex-end',
+    paddingTop: 80,
+    paddingRight: 20,
+  },
+  menuContainer: {
+    backgroundColor: '#1E1E2E',
+    borderRadius: 12,
+    padding: 10,
+    width: 200,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    gap: 12,
+  },
+  menuText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  menuHeader: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 5,
+    marginBottom: 5,
+    marginLeft: 10,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginVertical: 4,
+  },
+  // Selection Bar
+  selectionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#1E1E2E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 15,
+  },
+  selectionCount: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  selectionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  primarySelectionButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+  },
+  selectionButtonText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Bottom Sheet (Simple)
+  bottomModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#1E1E2E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '50%',
+  },
+  bottomSheetTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  playlistOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  playlistOptionText: {
+    color: '#FFF',
+    fontSize: 16,
+    flex: 1,
+    marginLeft: 15,
+  },
+  playlistOptionCount: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+  },
+  closeButton: {
+    marginTop: 20,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  closeButtonText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+    marginBottom: 20
+  }
+});
+
+export default LibraryScreen;

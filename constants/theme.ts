@@ -20,7 +20,7 @@ export const COLORS = {
   // Text colors
   textPrimaryLight: '#1A1A1B', // Main headings and titles in Light Mode
   textSecondaryLight: '#65676B', // Subtitles and artist names in Light Mode
-  textPrimaryDark: '#FFFFFF',    // Main headings and titles in Dark Mode
+  textPrimaryDark: '#050505ff',    // Main headings and titles in Dark Mode
   textSecondaryDark: '#B0B3B8',  // Subtitles and artist names in Dark Mode
   textLight: '#f8f8f8',
   // Interaction & Status

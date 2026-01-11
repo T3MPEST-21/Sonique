@@ -1,71 +1,41 @@
 import { COLORS } from '@/constants/theme'
+import { useAudio } from '@/contexts/AudioContext'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import React from 'react'
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useState } from 'react'
+import { Alert, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
 
 const { width } = Dimensions.get('window');
 
-const PLAYLISTS = [
-  {
-    id: '1',
-    title: 'Chill Vibes',
-    count: '24 Songs',
-    duration: '1h 20m',
-    image: require('@/assets/images/chill_mood_1768080634061.png'), // Placeholder
-    isOffline: true,
-    gradient: ['#8e44ad', '#3498db']
-  },
-  {
-    id: '2',
-    title: 'Workout Pump',
-    count: '15 Songs',
-    duration: '45m',
-    image: require('@/assets/images/energetic_mood_1768080617113.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#e67e22', '#e74c3c']
-  },
-  {
-    id: '3',
-    title: 'Focus Flow',
-    count: '50 Songs',
-    duration: '3h 10m',
-    image: require('@/assets/images/focus_mood_1768080676224.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#16a085', '#2980b9']
-  },
-  {
-    id: '4',
-    title: 'Late Night Jazz',
-    count: '12 Songs',
-    duration: '58m',
-    image: require('@/assets/images/melancholic_mood_1768080659321.png'), // Placeholder
-    isOffline: true,
-    gradient: ['#d35400', '#2c3e50']
-  },
-  {
-    id: '5',
-    title: 'Road Trip 2024',
-    count: '84 Songs',
-    duration: '5h 22m',
-    image: require('@/assets/images/party_mood_1768080705615.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#27ae60', '#f1c40f']
-  },
-  {
-    id: '6',
-    title: 'Rainy Days',
-    count: '30 Songs',
-    duration: '1h 45m',
-    image: require('@/assets/images/sleepy_mood_1768080726139.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#7f8c8d', '#bdc3c7']
-  },
-];
-
 const PlaylistScreen = () => {
   const router = useRouter();
+  const { customPlaylists, createPlaylist, deletePlaylist } = useAudio();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) return;
+    await createPlaylist(newPlaylistName);
+    setNewPlaylistName('');
+    setModalVisible(false);
+  };
+
+  const handleDeletePlaylist = (id: string) => {
+    Alert.alert(
+      "Delete Playlist",
+      "Are you sure you want to delete this playlist?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deletePlaylist(id) }
+      ]
+    );
+  };
+
+  const filteredPlaylists = customPlaylists.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -87,11 +57,13 @@ const PlaylistScreen = () => {
           placeholder="Find a playlist..."
           placeholderTextColor="rgba(255,255,255,0.4)"
           style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
       </View>
 
       {/* Create New Card */}
-      <TouchableOpacity style={styles.createCard} activeOpacity={0.8}>
+      <TouchableOpacity style={styles.createCard} activeOpacity={0.8} onPress={() => setModalVisible(true)}>
         <View style={styles.createIconContainer}>
           <Ionicons name="add" size={24} color={COLORS.primary} />
         </View>
@@ -105,28 +77,21 @@ const PlaylistScreen = () => {
   );
 
   const renderPlaylistItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.playlistItem} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.playlistItem} activeOpacity={0.7} onPress={() => router.push(`/playlist/${item.id}`)}>
       <View style={styles.playlistArtContainer}>
-        {/* Use Gradient for art placeholder if image fails/we want abstract look, 
-                    but simpler to just use Image or View with background color for now per design */}
         <LinearGradient
-          colors={item.gradient}
+          colors={['#8e44ad', '#3498db']}
           style={styles.playlistArt}
         />
-        {item.isOffline && (
-          <View style={styles.offlineBadge}>
-            <Ionicons name="checkmark" size={10} color="#FFF" />
-          </View>
-        )}
       </View>
 
       <View style={styles.playlistInfo}>
-        <Text style={styles.playlistTitle}>{item.title}</Text>
-        <Text style={styles.playlistMeta}>{item.count} • {item.duration}</Text>
+        <Text style={styles.playlistTitle}>{item.name}</Text>
+        <Text style={styles.playlistMeta}>{item.tracks.length} Songs</Text>
       </View>
 
-      <TouchableOpacity style={styles.moreButton}>
-        <MaterialCommunityIcons name="dots-vertical" size={24} color="rgba(255,255,255,0.5)" />
+      <TouchableOpacity style={styles.moreButton} onPress={() => handleDeletePlaylist(item.id)}>
+        <Ionicons name="trash-outline" size={20} color="rgba(255,255,255,0.5)" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -134,13 +99,50 @@ const PlaylistScreen = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={PLAYLISTS}
+        data={filteredPlaylists}
         renderItem={renderPlaylistItem}
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No playlists yet. Create one!</Text>
+          </View>
+        }
       />
+
+      {/* Create Playlist Modal */}
+      <Modal
+        transparent={true}
+        visible={modalVisible}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>New Playlist</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Playlist Name"
+                placeholderTextColor="#666"
+                value={newPlaylistName}
+                onChangeText={setNewPlaylistName}
+                autoFocus
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelButton}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleCreatePlaylist} style={styles.createButton}>
+                  <Text style={styles.createButtonText}>Create</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   )
 }
@@ -211,7 +213,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    borderStyle: 'dashed', // Dashed border as seen vaguely in design or common for "add" actions
+    borderStyle: 'dashed',
     marginBottom: 10,
   },
   createIconContainer: {
@@ -250,19 +252,6 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 12,
   },
-  offlineBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.primary,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.backgroundDark,
-  },
   playlistInfo: {
     flex: 1,
     marginLeft: 15,
@@ -278,6 +267,64 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
   },
   moreButton: {
-    padding: 5,
+    padding: 10,
   },
-})
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#252530',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 20,
+  },
+  modalInput: {
+    width: '100%',
+    backgroundColor: '#1E1E2E',
+    color: '#FFF',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  cancelText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+  },
+  createButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+  },
+  createButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
