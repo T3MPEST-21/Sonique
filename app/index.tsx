@@ -55,7 +55,8 @@ export default function SplashScreen() {
       if (currentStep >= steps) {
         clearInterval(timer);
         // Navigate to tabs after completion
-        setTimeout(() => {
+        setTimeout(() => {  
+          //@ts-ignore
           router.replace('/(tabs)');
         }, 300);
       }

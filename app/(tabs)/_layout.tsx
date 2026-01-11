@@ -1,6 +1,7 @@
 import { COLORS } from '@/constants/theme';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
     return (
@@ -19,19 +20,28 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Home',
+                    title: '',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="home" size={size} color={color} />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="LibraryScreen"
                 options={{
-                    title: 'Library',
+                    title: '',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="musical-notes" size={size} color={color} />
+                    ),
                 }}
             />
             <Tabs.Screen
-                name="SettingScreen"
+                name="SettingScreen"    
                 options={{
-                    title: 'Settings',
+                    title: '',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="settings" size={size} color={color} />
+                    ),
                 }}
             />
         </Tabs>

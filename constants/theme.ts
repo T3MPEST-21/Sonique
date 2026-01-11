@@ -7,6 +7,7 @@ export const COLORS = {
   // Primary brand color used for action buttons (Offline/Online mode), 
   // active tab icons, and mood selection highlights.
   primary: '#6C63FF', 
+  primaryDark: '#0f0f21',
 
   // Background colors
   backgroundLight: '#FFFFFF', // Used for main screen backgrounds in Light Mode
@@ -21,10 +22,10 @@ export const COLORS = {
   textSecondaryLight: '#65676B', // Subtitles and artist names in Light Mode
   textPrimaryDark: '#FFFFFF',    // Main headings and titles in Dark Mode
   textSecondaryDark: '#B0B3B8',  // Subtitles and artist names in Dark Mode
-
+  textLight: '#f8f8f8',
   // Interaction & Status
-  toggleActive: '#34C759',    // Used for the 'Online' status and active toggle switches
-  toggleInactive: '#E9E9EA',  // Used for the 'Offline' status and inactive toggle tracks
+  toggleActive: '#1313ec',    // Used for the 'Online' status and active toggle switches
+  toggleInactive: '#1e1e2e',  // Used for the 'Offline' status and inactive toggle tracks
   border: '#E0E0E0',          // Used for separators between music tracks and input field borders
 };
 
