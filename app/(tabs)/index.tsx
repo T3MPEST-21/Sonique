@@ -1,6 +1,7 @@
 import { COLORS } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, FlatList, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { hp } from '../../helpers/common';
@@ -46,6 +47,12 @@ const MOODS = [
         emoji: '💤',
         image: require('@/assets/images/sleepy_mood_1768080726139.png'),
     },
+    {
+        id: '7',
+        title: 'Workout',
+        emoji: '💪',
+        image: require('@/assets/images/Gym Dumbbell.png'),
+    }
 ];
 
 interface MoodItem {
@@ -57,6 +64,7 @@ interface MoodItem {
 
 const index = () => {
     const [isOnline, setIsOnline] = useState(true);
+    const router = useRouter();
 
     const renderHeader = () => (
         <View>
@@ -70,8 +78,8 @@ const index = () => {
                 <Text style={styles.title}>Vibe check</Text>
 
                 {/* Notifications */}
-                <TouchableOpacity>
-                    <Ionicons name='notifications' size={24} color='white' />
+                <TouchableOpacity onPress={() => router.push('/SettingsScreen')}>
+                    <Ionicons name='settings' size={24} color='white' />
                 </TouchableOpacity>
             </View>
 

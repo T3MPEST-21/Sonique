@@ -1,7 +1,7 @@
 import { COLORS } from '@/constants/theme';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
     return (
@@ -36,11 +36,11 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="SettingScreen"    
+                name="PlaylistScreen"
                 options={{
                     title: '',
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="settings" size={size} color={color} />
+                        <MaterialCommunityIcons name="playlist-play" size={size + 5} color={color} />
                     ),
                 }}
             />
