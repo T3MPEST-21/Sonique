@@ -1,3 +1,4 @@
+import GlobalMiniPlayer from "@/components/GlobalMiniPlayer";
 import { COLORS } from "@/constants/theme";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { Stack } from "expo-router";
@@ -21,6 +22,7 @@ export default function RootLayout() {
               }}
             />
           </Stack>
+          <GlobalMiniPlayer />
         </SafeAreaView>
       </SafeAreaProvider>
     </AudioProvider>

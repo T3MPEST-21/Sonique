@@ -1,5 +1,6 @@
+import MetadataEditModal from '@/components/MetadataEditModal';
 import { COLORS } from '@/constants/theme';
-import { useAudio } from '@/contexts/AudioContext';
+import { Track, useAudio } from '@/contexts/AudioContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -33,16 +34,22 @@ const PlaylistDetailScreen = () => {
         resumeTrack,
         removeFromPlaylist,
         addToPlaylist,
+        addTracksToPlaylist,
+        trackOverrides,
         libraryTracks, // All tracks for "Add Songs"
         loadLocalMusic, // Ensure we have tracks
         playNext,
     } = useAudio();
+
+    const [editingTrack, setEditingTrack] = useState<Track | null>(null);
 
     const [targetPlaylist, setTargetPlaylist] = useState<any>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
     const [menuVisible, setMenuVisible] = useState(false); // For context menu
     const [addSongsVisible, setAddSongsVisible] = useState(false); // For "Add Songs" modal
+    const [playlistPickerVisible, setPlaylistPickerVisible] = useState(false); // For "Move to" modal
+    const { moveTracksToPlaylist } = useAudio();
 
     // Add Songs State
     const [songsToAdd, setSongsToAdd] = useState<string[]>([]);
@@ -138,45 +145,20 @@ const PlaylistDetailScreen = () => {
         if (!targetPlaylist) return;
 
         // Find tracks in library
-        // libraryTracks might be empty if context didn't expose it correctly in interface, 
-        // but we updated `loadLocalMusic` to populate `libraryTracks` state, verify context interface.
-        // AudioContext interface has `loadLocalMusic` but does it expose `libraryTracks`?
-        // Checking interface... `playlist` is the queue. `libraryTracks` state exists inside provider but might not be exported in values.
-        // Workaround: Use `playlist` if it IS the library (initial state), or we need to expose `libraryTracks` in Context.
-        // Let's assume `playlist` (queue) is effectively "All Songs" if we haven't switched context, 
-        // OR we just use `MediaLibrary` again here? Better to expose `libraryTracks` in Context if not already. 
-        // I'll check Context again. If not exposed, I'll temporarily use `playlist` (queue) as source if it has tracks.
-
-        // Actually, let's just assume `playlist` holds all songs if user hasn't filtered. 
-        // Wait, `playlist` in context is `currentQueue`. 
-        // I will use `loadLocalMusic` logic re-fetch or rely on what I have.
-        // I will trust `playlist` has *something*, or re-fetch.
-
-        // REVISIT: I need to verify if `libraryTracks` is exposed. 
-        // Looking at previous `AudioContext.tsx` view...
-        // `  playlist: Track[]; // The current queue`
-        // `  loadLocalMusic: () => Promise<void>;`
-        // It does NOT expose `libraryTracks` separate from `playlist` (queue).
-        // However, `loadLocalMusic` sets `currentQueue`.
-        // So `playlist` variable IS the queue.
-
-        // FIX: I will use `playlist` (the global queue) as the source for "Add Songs" for now, 
-        // assuming the user has loaded music. 
-
-        const sourceTracks = currentQueue; // Best guess for "All Songs"
+        const sourceTracks = libraryTracks; // Use full library for "Add Songs"
         const tracksToAddObjects = sourceTracks.filter(t => songsToAdd.includes(t.id));
 
-        for (const track of tracksToAddObjects) {
-            // Check if already in playlist?
-            if (!targetPlaylist.tracks.some((t: any) => t.id === track.id)) {
-                await addToPlaylist(targetPlaylist.id, track);
-            }
+        // Add tracks to playlist
+        if (tracksToAddObjects.length > 0) {
+            await addTracksToPlaylist(targetPlaylist.id, tracksToAddObjects);
         }
+
         setAddSongsVisible(false);
         setSongsToAdd([]);
     };
 
 
+    // --- Render ---
     if (!targetPlaylist) {
         return (
             <View style={styles.container}>
@@ -185,9 +167,22 @@ const PlaylistDetailScreen = () => {
         );
     }
 
+    // --- Render ---
+    const handleMoveToPlaylist = async (destId: string) => {
+        if (!id || typeof id !== 'string') return;
+        await moveTracksToPlaylist(id, destId, selectedTracks);
+        setPlaylistPickerVisible(false);
+        setIsSelectionMode(false);
+        setSelectedTracks([]);
+        Alert.alert("Success", `Moved ${selectedTracks.length} songs`);
+    };
+
     const renderTrackItem = ({ item, index }: { item: any, index: number }) => {
         const isCurrent = currentTrack?.id === item.id;
         const isSelected = selectedTracks.includes(item.id);
+        const overrides = trackOverrides[item.id] || {};
+        const displayTitle = overrides.title || item.title;
+        const displayArtist = overrides.artist || item.artist;
 
         return (
             <TouchableOpacity
@@ -207,8 +202,8 @@ const PlaylistDetailScreen = () => {
             >
                 <Text style={styles.trackIndex}>{index + 1}</Text>
                 <View style={styles.trackInfo}>
-                    <Text style={[styles.trackTitle, isCurrent && { color: COLORS.primary }]} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.trackArtist}>{item.artist}</Text>
+                    <Text style={[styles.trackTitle, isCurrent && { color: COLORS.primary }]} numberOfLines={1}>{displayTitle}</Text>
+                    <Text style={styles.trackArtist}>{displayArtist}</Text>
                 </View>
                 {isSelectionMode && (
                     <View style={[styles.selectionCircle, isSelected && styles.selectedCircle]}>
@@ -308,6 +303,15 @@ const PlaylistDetailScreen = () => {
                             </TouchableOpacity>
                             <View style={styles.divider} />
 
+                            <TouchableOpacity
+                                onPress={() => { setPlaylistPickerVisible(true); setMenuVisible(false); }}
+                                style={styles.menuItem}
+                            >
+                                <MaterialCommunityIcons name="playlist-plus" size={20} color="#FFF" />
+                                <Text style={styles.menuText}>Move To...</Text>
+                            </TouchableOpacity>
+                            <View style={styles.divider} />
+
                             <TouchableOpacity style={styles.menuItem} onPress={handlePlayNext}>
                                 <MaterialCommunityIcons name="playlist-play" size={20} color="#FFF" />
                                 <Text style={styles.menuText}>Play Next</Text>
@@ -316,7 +320,16 @@ const PlaylistDetailScreen = () => {
                                 <MaterialCommunityIcons name="playlist-plus" size={20} color="#FFF" />
                                 <Text style={styles.menuText}>Add to other playlist</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.menuItem}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    const trackToEdit = targetPlaylist.tracks.find((t: any) => t.id === selectedTracks[0]);
+                                    if (trackToEdit) {
+                                        setEditingTrack(trackToEdit);
+                                        setMenuVisible(false);
+                                    }
+                                }}
+                            >
                                 <Ionicons name="information-circle-outline" size={20} color="#FFF" />
                                 <Text style={styles.menuText}>Properties</Text>
                             </TouchableOpacity>
@@ -324,6 +337,17 @@ const PlaylistDetailScreen = () => {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
+
+            {/* Metadata Edit Modal */}
+            <MetadataEditModal
+                visible={!!editingTrack}
+                track={editingTrack!}
+                onClose={() => {
+                    setEditingTrack(null);
+                    setIsSelectionMode(false);
+                    setSelectedTracks([]);
+                }}
+            />
 
             {/* Add Songs Modal */}
             <Modal
@@ -341,7 +365,7 @@ const PlaylistDetailScreen = () => {
                     </View>
 
                     <FlatList
-                        data={currentQueue} // Assuming this is "All Songs" source
+                        data={libraryTracks}
                         keyExtractor={item => item.id}
                         renderItem={({ item }) => {
                             const isAdded = songsToAdd.includes(item.id);
@@ -383,6 +407,38 @@ const PlaylistDetailScreen = () => {
                         </TouchableOpacity>
                     </View>
                 </View>
+            </Modal>
+            {/* Playlist Picker for "Move To" */}
+            <Modal
+                visible={playlistPickerVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setPlaylistPickerVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setPlaylistPickerVisible(false)}>
+                    <View style={styles.bottomModalOverlay}>
+                        <View style={styles.bottomSheet}>
+                            <Text style={styles.bottomSheetTitle}>Move to Playlist</Text>
+                            <FlatList
+                                data={customPlaylists.filter(p => p.id !== id)}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={styles.playlistOption}
+                                        onPress={() => handleMoveToPlaylist(item.id)}
+                                    >
+                                        <Ionicons name="musical-notes" size={24} color={COLORS.primary} />
+                                        <Text style={styles.playlistOptionText}>{item.name}</Text>
+                                        <Text style={styles.playlistOptionCount}>{item.tracks.length}</Text>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                            <TouchableOpacity style={styles.closeButton} onPress={() => setPlaylistPickerVisible(false)}>
+                                <Text style={styles.closeButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
             </Modal>
         </View>
     );
@@ -626,5 +682,61 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontWeight: '700',
         fontSize: 16,
+    },
+    // Picker Styles
+    bottomModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    bottomSheet: {
+        backgroundColor: '#1E1E2E',
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        padding: 24,
+        maxHeight: '60%',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    bottomSheetTitle: {
+        color: '#FFF',
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 25,
+        textAlign: 'center',
+    },
+    playlistOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 18,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    playlistOptionText: {
+        color: '#FFF',
+        fontSize: 17,
+        fontWeight: '600',
+        flex: 1,
+        marginLeft: 15,
+    },
+    playlistOptionCount: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    closeButton: {
+        marginTop: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingVertical: 14,
+        borderRadius: 15,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 16,
+        fontWeight: '600',
     }
 });

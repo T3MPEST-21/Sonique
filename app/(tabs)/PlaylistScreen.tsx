@@ -1,17 +1,16 @@
-import { COLORS } from '@/constants/theme'
-import { useAudio } from '@/contexts/AudioContext'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { Alert, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
+import { COLORS } from '@/constants/theme';
+import { useAudio } from '@/contexts/AudioContext';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const PlaylistScreen = () => {
   const router = useRouter();
   const { customPlaylists, createPlaylist, deletePlaylist } = useAudio();
-  const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
 
@@ -33,10 +32,6 @@ const PlaylistScreen = () => {
     );
   };
 
-  const filteredPlaylists = customPlaylists.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.topBar}>
@@ -49,30 +44,6 @@ const PlaylistScreen = () => {
           <MaterialCommunityIcons name="sort-variant" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
-
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="rgba(255,255,255,0.4)" />
-        <TextInput
-          placeholder="Find a playlist..."
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-
-      {/* Create New Card */}
-      <TouchableOpacity style={styles.createCard} activeOpacity={0.8} onPress={() => setModalVisible(true)}>
-        <View style={styles.createIconContainer}>
-          <Ionicons name="add" size={24} color={COLORS.primary} />
-        </View>
-        <View style={styles.createTextContainer}>
-          <Text style={styles.createTitle}>Create New Playlist</Text>
-          <Text style={styles.createSubtitle}>Add a new mood mix</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
-      </TouchableOpacity>
     </View>
   );
 
@@ -99,18 +70,54 @@ const PlaylistScreen = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={filteredPlaylists}
+        data={customPlaylists}
         renderItem={renderPlaylistItem}
         keyExtractor={item => item.id}
-        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            {renderHeader()}
+            <View style={styles.smartPlaylistContainer}>
+              <TouchableOpacity style={[styles.smartCard, { backgroundColor: '#4834d4' }]} onPress={() => router.push('/playlist/favorites')}>
+                <LinearGradient colors={['#686de0', '#4834d4']} style={StyleSheet.absoluteFillObject} />
+                <Ionicons name="heart" size={24} color="#FFF" />
+                <Text style={styles.smartCardTitle}>Liked Songs</Text>
+                <Text style={styles.smartCardSubtitle}>Your favorites</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.smartCard, { backgroundColor: '#20bf6b' }]} onPress={() => router.push('/playlist/recent')}>
+                <LinearGradient colors={['#26de81', '#20bf6b']} style={StyleSheet.absoluteFillObject} />
+                <MaterialCommunityIcons name="clock-time-four" size={24} color="#FFF" />
+                <Text style={styles.smartCardTitle}>Recently Added</Text>
+                <Text style={styles.smartCardSubtitle}>Fresh tunes</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your Playlists</Text>
+            </View>
+          </>
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No playlists yet. Create one!</Text>
+            <Text style={styles.emptyText}>No custom playlists. Create one!</Text>
           </View>
         }
       />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.8}
+        onPress={() => setModalVisible(true)}
+      >
+        <LinearGradient
+          colors={[COLORS.primary, '#4834d4']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={32} color="#FFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Create Playlist Modal */}
       <Modal
@@ -189,124 +196,99 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E1E2E',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 50,
-    marginBottom: 20,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#FFF',
-    height: '100%',
-  },
-  createCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(30, 30, 46, 0.5)',
-    borderRadius: 16,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderStyle: 'dashed',
-    marginBottom: 10,
-  },
-  createIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  createTextContainer: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  createTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
-    marginBottom: 2,
-  },
-  createSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-  },
   playlistItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingVertical: 12,
   },
   playlistArtContainer: {
-    position: 'relative',
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    marginRight: 15,
   },
   playlistArt: {
-    width: 64,
-    height: 64,
+    flex: 1,
     borderRadius: 12,
   },
   playlistInfo: {
     flex: 1,
-    marginLeft: 15,
   },
   playlistTitle: {
-    fontSize: 16,
-    fontWeight: '700',
     color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
   },
   playlistMeta: {
-    fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
   },
   moreButton: {
-    padding: 10,
+    padding: 5,
   },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 16,
+    textAlign: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
+    elevation: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#252530',
-    borderRadius: 20,
-    padding: 20,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1E1E2E',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFF',
     marginBottom: 20,
   },
   modalInput: {
-    width: '100%',
-    backgroundColor: '#1E1E2E',
-    color: '#FFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    color: '#FFF',
+    fontSize: 16,
+    marginBottom: 24,
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 15,
+    justifyContent: 'flex-end',
+    gap: 12,
   },
   cancelButton: {
     paddingVertical: 10,
@@ -326,5 +308,40 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  smartPlaylistContainer: {
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 25,
+    marginTop: 10,
+  },
+  smartCard: {
+    flex: 1,
+    height: 100,
+    borderRadius: 16,
+    padding: 15,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  smartCardTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 5,
+  },
+  smartCardSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });

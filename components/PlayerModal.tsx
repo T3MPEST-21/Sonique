@@ -22,7 +22,11 @@ const PlayerModal = () => {
         shuffleOn,
         repeatMode,
         toggleShuffle,
-        toggleRepeat
+        toggleRepeat,
+        position,
+        duration,
+        seek,
+        trackOverrides
     } = useAudio();
     const [isLiked, setIsLiked] = useState(false);
 
@@ -30,7 +34,15 @@ const PlayerModal = () => {
     const getRepeatIcon = () => {
         if (repeatMode === 'ONE') return 'repeat-once';
         if (repeatMode === 'ALL') return 'repeat';
-        return 'repeat-off'; // MaterialCommunityIcons
+        return 'repeat-off';
+    };
+
+    const formatTime = (millis: number) => {
+        if (!millis || millis < 0) return "0:00";
+        const totalSeconds = Math.floor(millis / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
     if (!currentTrack) {
@@ -43,6 +55,9 @@ const PlayerModal = () => {
             </View>
         );
     }
+
+    const progress = duration > 0 ? (position / duration) * 100 : 0;
+    const currentMood = (trackOverrides[currentTrack.id]?.mood as string || 'SONIQUE').toUpperCase();
 
     return (
         <View style={styles.container}>
@@ -86,25 +101,36 @@ const PlayerModal = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* Mood Tag */}
-            <View style={styles.moodTagWrapper}>
-                <LinearGradient
-                    colors={['rgba(108, 99, 255, 0.2)', 'rgba(108, 99, 255, 0.05)']}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={styles.moodTag}
-                >
-                    <Text style={styles.moodText}>✨ MOOD: NOSTALGIC</Text>
-                </LinearGradient>
+            {/* Mood Tag & Visualizer */}
+            <View style={styles.moodAndVis}>
+                <View style={styles.moodTagWrapper}>
+                    <LinearGradient
+                        colors={['rgba(108, 99, 255, 0.2)', 'rgba(108, 99, 255, 0.05)']}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={styles.moodTag}
+                    >
+                        <Text style={styles.moodText}>✨ MOOD: {currentMood}</Text>
+                    </LinearGradient>
+                </View>
+
+                {/* Simple 5-bar Visualizer */}
+                <View style={styles.visualizer}>
+                    <View style={[styles.visBar, { height: isPlaying ? 15 : 4 }]} />
+                    <View style={[styles.visBar, { height: isPlaying ? 25 : 4, marginHorizontal: 3 }]} />
+                    <View style={[styles.visBar, { height: isPlaying ? 20 : 4 }]} />
+                    <View style={[styles.visBar, { height: isPlaying ? 30 : 4, marginHorizontal: 3 }]} />
+                    <View style={[styles.visBar, { height: isPlaying ? 18 : 4 }]} />
+                </View>
             </View>
 
             {/* Progress Bar */}
             <View style={styles.progressContainer}>
                 <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { width: '45%' }]} />
+                    <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
                 </View>
                 <View style={styles.timeRow}>
-                    <Text style={styles.timeText}>0:00</Text>
-                    <Text style={styles.timeText}>{(currentTrack.duration / 60).toFixed(2)}</Text>
+                    <Text style={styles.timeText}>{formatTime(position)}</Text>
+                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
                 </View>
             </View>
 
@@ -154,10 +180,8 @@ const PlayerModal = () => {
                 </TouchableOpacity>
             </View>
         </View>
-    )
+    );
 }
-
-export default PlayerModal
 
 const styles = StyleSheet.create({
     container: {
@@ -208,9 +232,14 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: 'rgba(255,255,255,0.6)',
     },
-    moodTagWrapper: {
+    moodAndVis: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: 30,
         marginTop: 15,
+    },
+    moodTagWrapper: {
         alignItems: 'flex-start',
     },
     moodTag: {
@@ -225,6 +254,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         letterSpacing: 0.5,
+    },
+    visualizer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        height: 30,
+    },
+    visBar: {
+        width: 3,
+        backgroundColor: COLORS.primary,
+        borderRadius: 1.5,
     },
     progressContainer: {
         paddingHorizontal: 30,
@@ -298,3 +337,5 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 });
+
+export default PlayerModal

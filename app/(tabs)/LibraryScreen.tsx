@@ -1,5 +1,7 @@
+import MetadataEditModal from '@/components/MetadataEditModal';
 import { COLORS } from '@/constants/theme';
 import { Track, useAudio } from '@/contexts/AudioContext';
+import { fuzzySearch } from '@/utils/search';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -20,10 +22,17 @@ const LibraryScreen = () => {
     pauseTrack,
     resumeTrack,
     customPlaylists,
-    addToPlaylist
+    libraryTracks,
+    addToPlaylist,
+    addTracksToPlaylist,
+    trackOverrides,
+    updateTrackMetadata,
   } = useAudio();
   const [isOnline, setIsOnline] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('Calm');
+  const [activeFilter, setActiveFilter] = useState('All Moods');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingTrack, setEditingTrack] = useState<Track | null>(null);
+  const [activeTab, setActiveTab] = useState<'tracks' | 'artists' | 'albums'>('tracks');
 
   // Menu & Sorting State
   const [menuVisible, setMenuVisible] = useState(false);
@@ -39,22 +48,53 @@ const LibraryScreen = () => {
     loadLocalMusic();
   }, []);
 
-  // Derived State: Sorted Playlist
-  const sortedPlaylist = useMemo(() => {
-    let sorted = [...playlist];
+  // Derived State: Filtered & Sorted Playlist
+  const filteredAndSortedPlaylist = useMemo(() => {
+    // 1. Fuzzy Search
+    let filtered = fuzzySearch(libraryTracks, searchQuery, ['title', 'artist']);
+
+    // 2. Mood Filter
+    if (activeFilter !== 'All Moods') {
+      filtered = filtered.filter(track => {
+        const mood = trackOverrides[track.id]?.mood;
+        return mood === activeFilter.toLowerCase();
+      });
+    }
+
+    // 3. Sort
     if (sortBy === 'title') {
-      sorted.sort((a, b) => a.title.localeCompare(b.title));
+      filtered.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === 'date') {
-      sorted.sort((a, b) => (a.modificationTime || 0) - (b.modificationTime || 0));
+      filtered.sort((a, b) => (a.modificationTime || 0) - (b.modificationTime || 0));
     } else if (sortBy === 'duration') {
-      sorted.sort((a, b) => a.duration - b.duration);
+      filtered.sort((a, b) => a.duration - b.duration);
     }
 
     if (sortOrder === 'desc') {
-      sorted.reverse();
+      filtered.reverse();
     }
-    return sorted;
-  }, [playlist, sortBy, sortOrder]);
+    return filtered;
+  }, [libraryTracks, searchQuery, activeFilter, trackOverrides, sortBy, sortOrder]);
+
+  const groupedArtists = useMemo(() => {
+    const groups: Record<string, Track[]> = {};
+    libraryTracks.forEach(track => {
+      const artist = track.artist || 'Unknown Artist';
+      if (!groups[artist]) groups[artist] = [];
+      groups[artist].push(track);
+    });
+    return Object.entries(groups).map(([name, tracks]) => ({ name, tracks })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [libraryTracks]);
+
+  const groupedAlbums = useMemo(() => {
+    const groups: Record<string, Track[]> = {};
+    libraryTracks.forEach(track => {
+      const album = track.albumName || 'Local Audio';
+      if (!groups[album]) groups[album] = [];
+      groups[album].push(track);
+    });
+    return Object.entries(groups).map(([title, tracks]) => ({ title, tracks })).sort((a, b) => a.title.localeCompare(b.title));
+  }, [libraryTracks]);
 
   const handleSort = (type: 'title' | 'date' | 'duration') => {
     if (sortBy === type) {
@@ -104,25 +144,20 @@ const LibraryScreen = () => {
         <Text style={styles.headerTitle}>Your Library</Text>
 
         <View style={styles.headerActions}>
-          {/* Toggle Buttons (Hide in Selection Mode?) */}
-          {!isSelectionMode && (
-            <View style={styles.toggleContainer}>
+          {/* Tab Selector */}
+          <View style={styles.tabSelector}>
+            {(['tracks', 'artists', 'albums'] as const).map((tab) => (
               <TouchableOpacity
-                style={[styles.toggleButton, isOnline && styles.toggleActive]}
-                onPress={() => setIsOnline(true)}
+                key={tab}
+                style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+                onPress={() => setActiveTab(tab)}
               >
-                <Ionicons name="cloud" size={16} color={isOnline ? '#FFF' : 'rgba(255,255,255,0.5)'} />
-                <Text style={[styles.toggleText, isOnline && styles.toggleTextActive]}>Online</Text>
+                <Text style={[styles.tabButtonText, activeTab === tab && styles.tabButtonTextActive]}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleButton, !isOnline && styles.toggleActive]}
-                onPress={() => setIsOnline(false)}
-              >
-                <Ionicons name="checkmark-circle" size={16} color={!isOnline ? '#FFF' : 'rgba(255,255,255,0.5)'} />
-                <Text style={[styles.toggleText, !isOnline && styles.toggleTextActive]}>Offline</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            ))}
+          </View>
 
           {/* Menu Button */}
           <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
@@ -137,14 +172,77 @@ const LibraryScreen = () => {
           placeholder="Search tracks, artists..."
           placeholderTextColor="rgba(255,255,255,0.4)"
           style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Filter Chips - Only show for Tracks tab for now */}
+      {activeTab === 'tracks' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {FILTERS.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
+  );
+
+  const renderArtistItem = ({ item }: { item: { name: string; tracks: Track[] } }) => (
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={() => router.push(`/artist/${encodeURIComponent(item.name)}` as any)}
+    >
+      <View style={styles.categoryArtContainer}>
+        <Ionicons name="person" size={24} color={COLORS.primary} />
+      </View>
+      <View style={styles.categoryInfo}>
+        <Text style={styles.categoryTitle}>{item.name}</Text>
+        <Text style={styles.categorySubtitle}>{item.tracks.length} Songs</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+    </TouchableOpacity>
+  );
+
+  const renderAlbumItem = ({ item }: { item: { title: string; tracks: Track[] } }) => (
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={() => router.push(`/album/${encodeURIComponent(item.title)}` as any)}
+    >
+      <View style={styles.categoryArtContainer}>
+        <Ionicons name="disc" size={24} color={COLORS.primary} />
+      </View>
+      <View style={styles.categoryInfo}>
+        <Text style={styles.categoryTitle}>{item.title}</Text>
+        <Text style={styles.categorySubtitle}>{item.tracks.length} Songs</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+    </TouchableOpacity>
   );
 
   const renderTrackItem = ({ item }: { item: Track }) => {
     const isCurrent = currentTrack?.id === item.id;
     const isSelected = selectedTracks.includes(item.id);
+    const overrides = trackOverrides[item.id] || {};
+    const displayTitle = overrides.title || item.title;
+    const displayArtist = overrides.artist || item.artist;
+    const itemMood = overrides.mood;
 
     return (
       <TouchableOpacity
@@ -157,7 +255,7 @@ const LibraryScreen = () => {
           if (isSelectionMode) {
             toggleSelection(item.id);
           } else {
-            playTrack(item, sortedPlaylist);
+            playTrack(item, filteredAndSortedPlaylist);
           }
         }}
         onLongPress={() => {
@@ -195,41 +293,11 @@ const LibraryScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      {renderHeader()}
-
-      {/* Filter Chips */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {FILTERS.map((filter, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.filterChip,
-                activeFilter === filter && styles.activeFilterChip
-              ]}
-              onPress={() => setActiveFilter(filter)}
-            >
-              <Text style={[
-                styles.filterText,
-                activeFilter === filter && styles.activeFilterText
-              ]}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Track List */}
       <FlatList
-        data={sortedPlaylist}
-        renderItem={renderTrackItem}
-        keyExtractor={item => item.id}
+        data={activeTab === 'tracks' ? filteredAndSortedPlaylist : activeTab === 'artists' ? groupedArtists : groupedAlbums}
+        renderItem={activeTab === 'tracks' ? renderTrackItem : activeTab === 'artists' ? renderArtistItem as any : renderAlbumItem as any}
+        keyExtractor={(item: any) => item.id || item.name || item.title}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
@@ -239,6 +307,14 @@ const LibraryScreen = () => {
         <View style={styles.selectionBar}>
           <Text style={styles.selectionCount}>{selectedTracks.length} Selected</Text>
           <View style={styles.selectionActions}>
+            {selectedTracks.length === 1 && (
+              <TouchableOpacity
+                onPress={() => setEditingTrack(playlist.find(t => t.id === selectedTracks[0]) || null)}
+                style={styles.selectionButton}
+              >
+                <Ionicons name="pencil" size={20} color="#6C63FF" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={() => setIsSelectionMode(false)} style={styles.selectionButton}>
               <Text style={styles.selectionButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -253,30 +329,7 @@ const LibraryScreen = () => {
         </View>
       )}
 
-      {/* Mini Player (Hide in selection mode) */}
-      {currentTrack && !isSelectionMode && (
-        <TouchableOpacity
-          style={styles.miniPlayer}
-          activeOpacity={0.9}
-          onPress={() => router.push('/PlayerModal')}
-        >
-          <View style={styles.progressBar} />
-          <View style={styles.playerContent}>
-            <Image source={require('@/assets/images/chill_mood_1768080634061.png')} style={styles.miniArt} />
-            <View style={styles.miniInfo}>
-              <Text style={styles.miniTitle} numberOfLines={1}>{currentTrack.title}</Text>
-              <Text style={styles.miniArtist} numberOfLines={1}>{currentTrack.artist}</Text>
-            </View>
-            <View style={styles.miniControls}>
-              <TouchableOpacity onPress={() => isPlaying ? pauseTrack() : resumeTrack()}>
-                <View style={styles.playButton}>
-                  <Ionicons name={isPlaying ? "pause" : "play"} size={20} color="#FFF" />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      )}
+
 
       {/* Menu Modal */}
       <Modal
@@ -351,6 +404,17 @@ const LibraryScreen = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Metadata Edit Modal */}
+      <MetadataEditModal
+        visible={!!editingTrack}
+        track={editingTrack!}
+        onClose={() => {
+          setEditingTrack(null);
+          setIsSelectionMode(false);
+          setSelectedTracks([]);
+        }}
+      />
     </View>
   );
 };
@@ -378,8 +442,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 15,
   },
-  menuButton: {
-    padding: 5,
+  tabSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    padding: 3,
+  },
+  tabButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 17,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  tabButtonText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tabButtonTextActive: {
+    color: '#FFF',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -436,9 +519,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  activeFilterChip: {
+  filterContent: {
+    paddingRight: 20,
+    gap: 10,
+  },
+  filterChipActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+  },
+  filterTextActive: {
+    color: '#FFF',
+  },
+  menuButton: {
+    padding: 5,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  categoryArtContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  categoryTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  categorySubtitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    marginTop: 2,
   },
   filterText: {
     color: 'rgba(255,255,255,0.6)',

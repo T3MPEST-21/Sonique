@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -13,6 +13,8 @@ export interface Track {
     duration: number;
     modificationTime?: number;
     size?: number;
+    albumId?: string;
+    albumName?: string;
 }
 
 export interface Playlist {
@@ -28,14 +30,17 @@ interface AudioContextType {
     currentTrack: Track | null;
     isPlaying: boolean;
     playTrack: (track: Track, playlistContext?: Track[]) => Promise<void>;
+    enqueueNext: (track: Track) => void;
     pauseTrack: () => Promise<void>;
     resumeTrack: () => Promise<void>;
+    stopPlayback: () => Promise<void>;
     playNext: () => Promise<void>;
     playPrev: () => Promise<void>;
     seek: (position: number) => Promise<void>;
 
     // Data
     playlist: Track[]; // The current queue (could be library or a specific playlist)
+    libraryTracks: Track[]; // All local songs
     customPlaylists: Playlist[];
     loadLocalMusic: () => Promise<void>;
 
@@ -49,7 +54,17 @@ interface AudioContextType {
     createPlaylist: (name: string) => Promise<void>;
     deletePlaylist: (id: string) => Promise<void>;
     addToPlaylist: (playlistId: string, track: Track) => Promise<void>;
+    addTracksToPlaylist: (playlistId: string, tracks: Track[]) => Promise<void>;
+    moveTracksToPlaylist: (sourceId: string, targetId: string, trackIds: string[]) => Promise<void>;
     removeFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+
+    // Queue Manipulation
+    removeFromQueue: (trackId: string) => void;
+    clearQueue: () => void;
+
+    // Metadata & Moods
+    trackOverrides: Record<string, any>;
+    updateTrackMetadata: (trackId: string, changes: any) => Promise<void>;
 
     sound: Audio.Sound | null;
     position: number;
@@ -74,19 +89,34 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(0);
 
-    // Persist Playlists
+    const [trackOverrides, setTrackOverrides] = useState<Record<string, any>>({});
+
+    // Persist Playlists & Overrides
     useEffect(() => {
-        loadPlaylists();
+        loadData();
     }, []);
 
-    const loadPlaylists = async () => {
+    const loadData = async () => {
         try {
-            const stored = await AsyncStorage.getItem('customPlaylists');
-            if (stored) {
-                setCustomPlaylists(JSON.parse(stored));
+            const storedPlaylists = await AsyncStorage.getItem('customPlaylists');
+            if (storedPlaylists) {
+                const parsed = JSON.parse(storedPlaylists);
+                // Basic validation: ensure it's an array
+                if (Array.isArray(parsed)) {
+                    setCustomPlaylists(parsed);
+                }
+            }
+
+            const storedOverrides = await AsyncStorage.getItem('trackOverrides');
+            if (storedOverrides) {
+                const parsed = JSON.parse(storedOverrides);
+                // Validation: ensure it's an object
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    setTrackOverrides(parsed);
+                }
             }
         } catch (e) {
-            console.log("Failed to load playlists", e);
+            console.error("Failed to load data", e);
         }
     };
 
@@ -95,13 +125,27 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         await AsyncStorage.setItem('customPlaylists', JSON.stringify(playlists));
     };
 
+    const updateTrackMetadata = async (trackId: string, changes: any) => {
+        const newOverrides = {
+            ...trackOverrides,
+            [trackId]: {
+                ...(trackOverrides[trackId] || {}),
+                ...changes
+            }
+        };
+        setTrackOverrides(newOverrides);
+        await AsyncStorage.setItem('trackOverrides', JSON.stringify(newOverrides));
+    };
+
     // Setup Audio Mode
     useEffect(() => {
         Audio.setAudioModeAsync({
             staysActiveInBackground: true,
             playsInSilentModeIOS: true,
-            shouldDuckAndroid: true,
+            shouldDuckAndroid: false,
             playThroughEarpieceAndroid: false,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+            interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
         });
     }, []);
 
@@ -198,9 +242,14 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
         const media = await MediaLibrary.getAssetsAsync({
             mediaType: 'audio',
-            first: 200,
+            first: 5000,
             sortBy: [MediaLibrary.SortBy.modificationTime],
         });
+
+        // Fetch albums to map names
+        const albums = await MediaLibrary.getAlbumsAsync();
+        const albumMap: Record<string, string> = {};
+        albums.forEach(a => albumMap[a.id] = a.title);
 
         const tracks = media.assets.map((asset) => ({
             id: asset.id,
@@ -209,6 +258,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             uri: asset.uri,
             duration: asset.duration,
             modificationTime: asset.modificationTime,
+            albumId: (asset as any).albumId,
+            albumName: albumMap[(asset as any).albumId] || 'Local Audio',
             size: 0,
         }));
 
@@ -216,6 +267,22 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         // Initially, the queue is the library
         if (currentQueue.length === 0) {
             setCurrentQueue(tracks);
+        }
+
+        // Cleanup stale overrides (orphans)
+        cleanupStaleOverrides(tracks);
+    };
+
+    const cleanupStaleOverrides = async (currentTracks: Track[]) => {
+        const trackIds = new Set(currentTracks.map(t => t.id));
+        const staleIds = Object.keys(trackOverrides).filter(id => !trackIds.has(id));
+
+        if (staleIds.length > 0) {
+            const newOverrides = { ...trackOverrides };
+            staleIds.forEach(id => delete newOverrides[id]);
+            setTrackOverrides(newOverrides);
+            await AsyncStorage.setItem('trackOverrides', JSON.stringify(newOverrides));
+            console.log(`Cleaned up ${staleIds.length} orphaned metadata entries.`);
         }
     };
 
@@ -303,16 +370,19 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         await savePlaylists(updated);
     };
 
-    const addToPlaylist = async (playlistId: string, track: Track) => {
+    const addTracksToPlaylist = async (playlistId: string, tracks: Track[]) => {
         const updated = customPlaylists.map(p => {
             if (p.id === playlistId) {
-                // Prevent duplicates? logic can be optional
-                if (p.tracks.some(t => t.id === track.id)) return p;
-                return { ...p, tracks: [...p.tracks, track] };
+                const newTracks = tracks.filter(nt => !p.tracks.some(t => t.id === nt.id));
+                return { ...p, tracks: [...p.tracks, ...newTracks] };
             }
             return p;
         });
         await savePlaylists(updated);
+    };
+
+    const addToPlaylist = async (playlistId: string, track: Track) => {
+        await addTracksToPlaylist(playlistId, [track]);
     };
 
     const removeFromPlaylist = async (playlistId: string, trackId: string) => {
@@ -325,6 +395,68 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         await savePlaylists(updated);
     };
 
+    const removeFromQueue = (trackId: string) => {
+        setCurrentQueue(prev => prev.filter(t => t.id !== trackId));
+    };
+
+    const clearQueue = () => {
+        setCurrentQueue([]);
+        if (sound) sound.stopAsync();
+        setCurrentTrack(null);
+        setIsPlaying(false);
+    };
+
+    const moveTracksToPlaylist = async (sourceId: string, targetId: string, trackIds: string[]) => {
+        const sourcePlaylist = customPlaylists.find(p => p.id === sourceId);
+        if (!sourcePlaylist) return;
+
+        const tracksToMove = sourcePlaylist.tracks.filter(t => trackIds.includes(t.id));
+
+        const updated = customPlaylists.map(p => {
+            if (p.id === sourceId) {
+                return { ...p, tracks: p.tracks.filter(t => !trackIds.includes(t.id)) };
+            }
+            if (p.id === targetId) {
+                // Avoid duplicates in target
+                const existingIds = new Set(p.tracks.map(t => t.id));
+                const uniqueNewTracks = tracksToMove.filter(t => !existingIds.has(t.id));
+                return { ...p, tracks: [...p.tracks, ...uniqueNewTracks] };
+            }
+            return p;
+        });
+
+        await savePlaylists(updated);
+    };
+
+    const stopPlayback = async () => {
+        if (sound) {
+            await sound.stopAsync();
+            await sound.unloadAsync();
+            setSound(null);
+        }
+        setCurrentTrack(null);
+        setIsPlaying(false);
+        setPosition(0);
+    };
+
+    const enqueueNext = (track: Track) => {
+        if (!currentTrack) {
+            playTrack(track);
+            return;
+        }
+
+        setCurrentQueue(prev => {
+            const currentIndex = prev.findIndex(t => t.id === currentTrack.id);
+            // Remove if already in queue to avoid double entries, then insert after current
+            const filtered = prev.filter(t => t.id !== track.id);
+            const newIndex = currentIndex !== -1 ? currentIndex + 1 : 0;
+            const newQueue = [...filtered];
+            newQueue.splice(newIndex, 0, track);
+            return newQueue;
+        });
+        Alert.alert("Queue Updated", `${track.title} will play next.`);
+    };
+
 
     return (
         <AudioContext.Provider value={{
@@ -333,7 +465,9 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             playTrack,
             pauseTrack,
             resumeTrack,
+            stopPlayback,
             playNext,
+            enqueueNext,
             playPrev,
             seek,
             loadLocalMusic,
@@ -349,7 +483,14 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             createPlaylist,
             deletePlaylist,
             addToPlaylist,
+            addTracksToPlaylist,
+            moveTracksToPlaylist,
             removeFromPlaylist,
+            trackOverrides,
+            updateTrackMetadata,
+            libraryTracks,
+            removeFromQueue,
+            clearQueue,
         }}>
             {children}
         </AudioContext.Provider>

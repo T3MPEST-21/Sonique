@@ -1,9 +1,11 @@
 import { COLORS } from '@/constants/theme';
+import { Track, useAudio } from '@/contexts/AudioContext';
+import SpiritCore from '@/utils/SpiritCoreService';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, FlatList, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, FlatList, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { hp } from '../../helpers/common';
 
 const { width } = Dimensions.get('window');
@@ -62,9 +64,47 @@ interface MoodItem {
     image: any;
 }
 
-const index = () => {
+const Index = () => {
     const [isOnline, setIsOnline] = useState(true);
     const router = useRouter();
+    const { playlist: libraryTracks, playTrack, trackOverrides } = useAudio();
+
+    const handleSpiritCorePress = () => {
+        const spiritPlaylist = SpiritCore.generateSpiritPlaylist(libraryTracks, trackOverrides);
+        const mood = SpiritCore.predictMood();
+
+        if (spiritPlaylist.length === 0) {
+            Alert.alert(
+                "Spirit Insight",
+                `I think you'd love some ${mood} vibes right now, but you haven't tagged any songs yet! Shall we go to the library?`,
+                [{ text: "Go to Library", onPress: () => router.push('/LibraryScreen') }, { text: "Later" }]
+            );
+            return;
+        }
+
+        playTrack(spiritPlaylist[0], spiritPlaylist);
+        router.push('/PlayerModal');
+    };
+
+    const handleMoodPress = (moodTitle: string) => {
+        const moodId = moodTitle.toLowerCase();
+        const moodSongs = libraryTracks.filter((track: Track) => {
+            const mood = trackOverrides[track.id]?.mood;
+            return mood === moodId;
+        });
+
+        if (moodSongs.length === 0) {
+            Alert.alert(
+                "No tracks tagged",
+                `You haven't tagged any songs with "${moodTitle}" yet.`,
+                [{ text: "Go to Library", onPress: () => router.push('/LibraryScreen') }, { text: "OK" }]
+            );
+            return;
+        }
+
+        playTrack(moodSongs[0], moodSongs);
+        router.push('/PlayerModal');
+    };
 
     const renderHeader = () => (
         <View>
@@ -82,6 +122,29 @@ const index = () => {
                     <Ionicons name='settings' size={24} color='white' />
                 </TouchableOpacity>
             </View>
+
+            {/* Spirit Core Integration */}
+            <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleSpiritCorePress}
+                style={styles.spiritContainer}
+            >
+                <LinearGradient
+                    colors={['rgba(108, 99, 255, 0.3)', 'rgba(40, 30, 80, 0.5)']}
+                    style={styles.spiritCard}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <View style={styles.spiritIconContainer}>
+                        <Ionicons name="sparkles" size={24} color="#6C63FF" />
+                    </View>
+                    <View style={styles.spiritTextContainer}>
+                        <Text style={styles.spiritGreeting}>{SpiritCore.getGreeting()}</Text>
+                        <Text style={styles.spiritInsight}>Based on current {SpiritCore.getContext().timeOfDay.toLowerCase()} vibes.</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.3)" />
+                </LinearGradient>
+            </TouchableOpacity>
 
             {/* body content */}
             <View style={styles.bodyContent}>
@@ -161,7 +224,11 @@ const index = () => {
     );
 
     const renderMoodCard = ({ item }: { item: MoodItem }) => (
-        <TouchableOpacity style={styles.card} activeOpacity={0.9}>
+        <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => handleMoodPress(item.title)}
+        >
             <ImageBackground
                 source={item.image}
                 style={styles.cardImage}
@@ -198,7 +265,7 @@ const index = () => {
     )
 }
 
-export default index
+export default Index
 
 const styles = StyleSheet.create({
     mainContainer: {
@@ -323,6 +390,40 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
+    },
+    spiritContainer: {
+        marginHorizontal: 20,
+        marginBottom: 20,
+    },
+    spiritCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 20,
+        borderRadius: 25,
+        borderWidth: 1,
+        borderColor: 'rgba(108, 99, 255, 0.2)',
+    },
+    spiritIconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    spiritTextContainer: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    spiritGreeting: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    spiritInsight: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        marginTop: 4,
     },
     footerContainer: {
         paddingHorizontal: 20,
