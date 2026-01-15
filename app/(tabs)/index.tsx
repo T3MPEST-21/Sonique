@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, FlatList, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAudio } from '../../contexts/AudioContext';
 import { hp } from '../../helpers/common';
 
 const { width } = Dimensions.get('window');
@@ -65,30 +66,30 @@ interface MoodItem {
 const index = () => {
     const [isOnline, setIsOnline] = useState(true);
     const router = useRouter();
+    const { setActiveMood } = useAudio();
+
+    const handleMoodPress = (moodTitle: string) => {
+        setActiveMood(moodTitle);
+        router.push('/(tabs)/LibraryScreen');
+    };
 
     const renderHeader = () => (
         <View>
             <View style={styles.header}>
-                {/* Menu */}
                 <TouchableOpacity>
                     <Ionicons name='menu' size={24} color='white' />
                 </TouchableOpacity>
 
-                {/* Title */}
                 <Text style={styles.title}>Vibe check</Text>
 
-                {/* Notifications */}
                 <TouchableOpacity onPress={() => router.push('/SettingsScreen')}>
                     <Ionicons name='settings' size={24} color='white' />
                 </TouchableOpacity>
             </View>
 
-            {/* body content */}
             <View style={styles.bodyContent}>
-                {/* Toggle Button - Segmented Control */}
                 <View style={styles.toggleContainer}>
                     <View style={styles.toggleWrapper}>
-                        {/* Offline Button */}
                         <TouchableOpacity
                             style={[
                                 styles.toggleButton,
@@ -110,7 +111,6 @@ const index = () => {
                             </Text>
                         </TouchableOpacity>
 
-                        {/* Online Button */}
                         <TouchableOpacity
                             style={[
                                 styles.toggleButton,
@@ -134,7 +134,6 @@ const index = () => {
                     </View>
                 </View>
 
-                {/* subtext */}
                 <View style={styles.textContainer}>
                     <Text style={styles.subTextHeader}>How are you feeling?</Text>
                     <Text style={styles.subText}>Select a vibe to start your mix.</Text>
@@ -161,7 +160,11 @@ const index = () => {
     );
 
     const renderMoodCard = ({ item }: { item: MoodItem }) => (
-        <TouchableOpacity style={styles.card} activeOpacity={0.9}>
+        <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => handleMoodPress(item.title)}
+        >
             <ImageBackground
                 source={item.image}
                 style={styles.cardImage}

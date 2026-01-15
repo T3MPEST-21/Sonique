@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -11,6 +11,7 @@ export interface Track {
     uri: string;
     artwork?: string;
     duration: number;
+    mood?: string;
 }
 
 interface AudioContextType {
@@ -23,6 +24,8 @@ interface AudioContextType {
     sound: Audio.Sound | null;
     position: number;
     duration: number;
+    activeMood: string;
+    setActiveMood: (mood: string) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -33,15 +36,25 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [activeMood, setActiveMood] = useState('All Moods');
 
     // Setup Audio Mode on mount
     useEffect(() => {
-        Audio.setAudioModeAsync({
-            staysActiveInBackground: true,
-            playsInSilentModeIOS: true,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
-        });
+        const setupAudio = async () => {
+            try {
+                await Audio.setAudioModeAsync({
+                    staysActiveInBackground: true,
+                    playsInSilentModeIOS: true,
+                    shouldDuckAndroid: true,
+                    playThroughEarpieceAndroid: false,
+                    interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+                    interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+                });
+            } catch (error) {
+                console.error("Error setting up audio mode", error);
+            }
+        };
+        setupAudio();
     }, []);
 
     // Unload sound on unmount
@@ -83,11 +96,19 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             newSound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded) {
                     setPosition(status.positionMillis);
-                    setDuration(status.durationMillis || 0); // avoid null
+                    setDuration(status.durationMillis || 0);
                     setIsPlaying(status.isPlaying);
+
+                    // Handle completion
                     if (status.didJustFinish) {
                         setIsPlaying(false);
                         // Optional: Play next logic here
+                    }
+
+                    // Handle interruptions (ducking/pausing)
+                    if (status.isLoaded && !status.isPlaying && status.shouldPlay) {
+                        // This usually happens during an interruption if not handled by OS automatically
+                        console.log("Audio interrupted or paused by system");
                     }
                 }
             });
@@ -111,6 +132,20 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const getMoodForTrack = (filename: string): string => {
+        const name = filename.toLowerCase();
+        if (name.includes('chill') || name.includes('relax') || name.includes('ambient') || name.includes('space')) return 'Calm';
+        if (name.includes('run') || name.includes('workout') || name.includes('gym') || name.includes('fast') || name.includes('gym')) return 'Workout';
+        if (name.includes('party') || name.includes('dance') || name.includes('energy') || name.includes('upbeat')) return 'Energetic';
+        if (name.includes('sad') || name.includes('cry') || name.includes('blue') || name.includes('night') || name.includes('midnight')) return 'Melancholic';
+        if (name.includes('study') || name.includes('focus') || name.includes('deep') || name.includes('work')) return 'Focus';
+
+        // Randomly assign a mood if no keywords found for "spirit" variety, 
+        // or default to "Calm" for local testing if preferred.
+        const moods = ['Calm', 'Energetic', 'Melancholic', 'Focus', 'Workout'];
+        return moods[Math.floor(Math.random() * moods.length)];
+    };
+
     const loadLocalMusic = async (): Promise<Track[]> => {
         const { status } = await MediaLibrary.requestPermissionsAsync();
         if (status !== 'granted') {
@@ -120,16 +155,18 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
         const media = await MediaLibrary.getAssetsAsync({
             mediaType: 'audio',
-            first: 50, // Limit for performance initially
+            first: 50,
         });
 
-        // Map to our Track interface
+        // Map to our Track interface with improved metadata
         return media.assets.map((asset) => ({
             id: asset.id,
             title: asset.filename.replace(/\.[^/.]+$/, ""), // remove extension
-            artist: 'Unknown Artist', // MediaLibrary might not separate artist well on all devices
+            artist: 'Unknown Artist',
             uri: asset.uri,
             duration: asset.duration * 1000,
+            artwork: undefined, // Could add album art extraction if needed
+            mood: getMoodForTrack(asset.filename),
         }));
     };
 
@@ -143,7 +180,9 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             loadLocalMusic,
             sound,
             position,
-            duration
+            duration,
+            activeMood,
+            setActiveMood,
         }}>
             {children}
         </AudioContext.Provider>

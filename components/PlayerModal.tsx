@@ -4,13 +4,23 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useAudio } from '../contexts/AudioContext'
 
 const { width, height } = Dimensions.get('window');
 
 const PlayerModal = () => {
     const router = useRouter();
-    const [isPlaying, setIsPlaying] = useState(true);
+    const { currentTrack, isPlaying, playTrack, pauseTrack, resumeTrack, position, duration } = useAudio();
     const [isLiked, setIsLiked] = useState(false);
+
+    const formatTime = (millis: number) => {
+        const totalSeconds = millis / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    };
+
+    const progress = duration > 0 ? (position / duration) * 100 : 0;
 
     return (
         <View style={styles.container}>
@@ -33,17 +43,23 @@ const PlayerModal = () => {
 
             {/* Album Art */}
             <View style={styles.artworkContainer}>
-                <Image
-                    source={require('@/assets/images/energetic_mood_1768080617113.png')}
-                    style={styles.artwork}
-                />
+                {currentTrack?.artwork ? (
+                    <Image
+                        source={{ uri: currentTrack.artwork }}
+                        style={styles.artwork}
+                    />
+                ) : (
+                    <View style={[styles.artwork, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="musical-note" size={100} color="rgba(255,255,255,0.1)" />
+                    </View>
+                )}
             </View>
 
             {/* Track Info */}
             <View style={styles.trackInfoContainer}>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.trackTitle}>Midnight City</Text>
-                    <Text style={styles.artistName}>M83</Text>
+                    <Text style={styles.trackTitle} numberOfLines={1}>{currentTrack?.title || 'No Track'}</Text>
+                    <Text style={styles.artistName} numberOfLines={1}>{currentTrack?.artist || 'Unknown Artist'}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setIsLiked(!isLiked)}>
                     <Ionicons
@@ -61,18 +77,18 @@ const PlayerModal = () => {
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={styles.moodTag}
                 >
-                    <Text style={styles.moodText}>✨ MOOD: NOSTALGIC</Text>
+                    <Text style={styles.moodText}>✨ MOOD: {currentTrack?.mood?.toUpperCase() || 'UNKNOWN'}</Text>
                 </LinearGradient>
             </View>
 
             {/* Progress Bar */}
             <View style={styles.progressContainer}>
                 <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { width: '45%' }]} />
+                    <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
                 </View>
                 <View style={styles.timeRow}>
-                    <Text style={styles.timeText}>1:45</Text>
-                    <Text style={styles.timeText}>4:03</Text>
+                    <Text style={styles.timeText}>{formatTime(position)}</Text>
+                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
                 </View>
             </View>
 
@@ -89,14 +105,14 @@ const PlayerModal = () => {
 
                     <TouchableOpacity
                         style={styles.playButton}
-                        onPress={() => setIsPlaying(!isPlaying)}
+                        onPress={() => isPlaying ? pauseTrack() : (currentTrack && playTrack(currentTrack))}
                         activeOpacity={0.8}
                     >
                         <LinearGradient
                             colors={[COLORS.primary, '#4a43cc']}
                             style={styles.playButtonGradient}
                         >
-                            <Ionicons name={isPlaying ? "pause" : "play"} size={32} color="#FFF" />
+                            <Ionicons name={isPlaying ? "pause" : "play"} size={32} color="#FFF" style={!isPlaying && { marginLeft: 5 }} />
                         </LinearGradient>
                     </TouchableOpacity>
 

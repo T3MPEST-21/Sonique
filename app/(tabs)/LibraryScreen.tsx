@@ -2,8 +2,9 @@ import { COLORS } from '@/constants/theme'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Track, useAudio } from '../../contexts/AudioContext'
 
 const { width } = Dimensions.get('window');
 
@@ -54,8 +55,29 @@ const FILTERS = ['All Moods', 'Calm', 'Energetic', 'Melancholic', 'Focus', 'Work
 
 const LibraryScreen = () => {
   const router = useRouter();
+  const { currentTrack, isPlaying, playTrack, pauseTrack, loadLocalMusic, activeMood, setActiveMood, position, duration } = useAudio();
   const [isOnline, setIsOnline] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('Calm');
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMusic = async () => {
+      setLoading(true);
+      const localTracks = await loadLocalMusic();
+      setTracks(localTracks);
+      setLoading(false);
+    };
+    fetchMusic();
+  }, []);
+
+  useEffect(() => {
+    if (activeMood === 'All Moods') {
+      setFilteredTracks(tracks);
+    } else {
+      setFilteredTracks(tracks.filter(t => t.mood === activeMood));
+    }
+  }, [tracks, activeMood]);
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -70,7 +92,7 @@ const LibraryScreen = () => {
 
       <View style={styles.titleContainer}>
         <View>
-          <Text style={styles.moodDetected}>MOOD DETECTED: CALM</Text>
+          <Text style={styles.moodDetected}>MOOD DETECTED: {activeMood.toUpperCase()}</Text>
           <Text style={styles.headerTitle}>My Library</Text>
         </View>
         {/* Gradient Orb Decoration */}
@@ -117,25 +139,31 @@ const LibraryScreen = () => {
         {FILTERS.map((filter, index) => (
           <TouchableOpacity
             key={index}
-            style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-            onPress={() => setActiveFilter(filter)}
+            style={[styles.filterChip, activeMood === filter && styles.filterChipActive]}
+            onPress={() => setActiveMood(filter)}
           >
-            <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
+            <Text style={[styles.filterText, activeMood === filter && styles.filterTextActive]}>{filter}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
   );
 
-  const renderTrackItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.trackItem} activeOpacity={0.7}>
-      <Image source={item.image} style={styles.trackImage} />
+  const renderTrackItem = ({ item }: { item: Track }) => (
+    <TouchableOpacity
+      style={styles.trackItem}
+      activeOpacity={0.7}
+      onPress={() => playTrack(item)}
+    >
+      <View style={[styles.trackImage, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+        <Ionicons name="musical-note" size={24} color="rgba(255,255,255,0.3)" />
+      </View>
 
       <View style={styles.trackInfo}>
         <View style={styles.titleRow}>
-          <Text style={styles.trackTitle}>{item.title}</Text>
+          <Text style={[styles.trackTitle, currentTrack?.id === item.id && { color: COLORS.primary }]} numberOfLines={1}>{item.title}</Text>
           {/* Tiny mood dot */}
-          <View style={[styles.moodDot, { backgroundColor: item.moodColor }]} />
+          <View style={[styles.moodDot, { backgroundColor: COLORS.primary }]} />
         </View>
         <Text style={styles.artistName} numberOfLines={1}>{item.artist}</Text>
       </View>
@@ -156,14 +184,21 @@ const LibraryScreen = () => {
   return (
     <View style={styles.container}>
       <View style={{ flex: 1 }}>
-        <FlatList
-          data={TRACKS}
-          renderItem={renderTrackItem}
-          keyExtractor={item => item.id}
-          ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 20 }}>Scanning your library...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTracks}
+            renderItem={renderTrackItem}
+            keyExtractor={item => item.id}
+            ListHeaderComponent={renderHeader}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </View>
 
       {/* Mini Player */}
@@ -178,21 +213,27 @@ const LibraryScreen = () => {
         </View>
 
         <View style={styles.playerContent}>
-          <Image source={require('@/assets/images/chill_mood_1768080634061.png')} style={styles.miniArt} />
+          <View style={[styles.miniArt, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="musical-note" size={20} color="rgba(255,255,255,0.3)" />
+          </View>
           <View style={styles.miniInfo}>
-            <Text style={styles.miniTitle}>Intro - The XX</Text>
-            <Text style={styles.miniArtist}>XX</Text>
+            <Text style={styles.miniTitle} numberOfLines={1}>{currentTrack?.title || 'No Track Selected'}</Text>
+            <Text style={styles.miniArtist} numberOfLines={1}>{currentTrack?.artist || '...'}</Text>
           </View>
 
           <View style={styles.miniControls}>
-            <TouchableOpacity>
-              <Ionicons name="play-skip-back" size={24} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="pause" size={20} color="#FFF" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Ionicons name="play-skip-forward" size={24} color="rgba(255,255,255,0.6)" />
+            <TouchableOpacity onPress={pauseTrack}>
+              {isPlaying ? (
+                <View style={styles.playButton}>
+                  <Ionicons name="pause" size={20} color="#FFF" />
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => currentTrack && playTrack(currentTrack)}>
+                  <View style={styles.playButton}>
+                    <Ionicons name="play" size={20} color="#FFF" style={{ marginLeft: 2 }} />
+                  </View>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           </View>
         </View>
