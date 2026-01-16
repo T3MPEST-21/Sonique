@@ -1,71 +1,65 @@
 import { COLORS } from '@/constants/theme'
+import { useAudio } from '@/contexts/AudioContext'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import React from 'react'
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useState } from 'react'
+import { Alert, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 const { width } = Dimensions.get('window');
 
-const PLAYLISTS = [
-  {
-    id: '1',
-    title: 'Chill Vibes',
-    count: '24 Songs',
-    duration: '1h 20m',
-    image: require('@/assets/images/chill_mood_1768080634061.png'), // Placeholder
-    isOffline: true,
-    gradient: ['#8e44ad', '#3498db']
-  },
-  {
-    id: '2',
-    title: 'Workout Pump',
-    count: '15 Songs',
-    duration: '45m',
-    image: require('@/assets/images/energetic_mood_1768080617113.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#e67e22', '#e74c3c']
-  },
-  {
-    id: '3',
-    title: 'Focus Flow',
-    count: '50 Songs',
-    duration: '3h 10m',
-    image: require('@/assets/images/focus_mood_1768080676224.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#16a085', '#2980b9']
-  },
-  {
-    id: '4',
-    title: 'Late Night Jazz',
-    count: '12 Songs',
-    duration: '58m',
-    image: require('@/assets/images/melancholic_mood_1768080659321.png'), // Placeholder
-    isOffline: true,
-    gradient: ['#d35400', '#2c3e50']
-  },
-  {
-    id: '5',
-    title: 'Road Trip 2024',
-    count: '84 Songs',
-    duration: '5h 22m',
-    image: require('@/assets/images/party_mood_1768080705615.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#27ae60', '#f1c40f']
-  },
-  {
-    id: '6',
-    title: 'Rainy Days',
-    count: '30 Songs',
-    duration: '1h 45m',
-    image: require('@/assets/images/sleepy_mood_1768080726139.png'), // Placeholder
-    isOffline: false,
-    gradient: ['#7f8c8d', '#bdc3c7']
-  },
-];
-
 const PlaylistScreen = () => {
   const router = useRouter();
+  const { playlists, createPlaylist, deletePlaylist, renamePlaylist } = useAudio();
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) {
+      Alert.alert('Error', 'Please enter a name for your playlist');
+      return;
+    }
+    await createPlaylist(newPlaylistName.trim());
+    setNewPlaylistName('');
+    setIsCreateModalVisible(false);
+  };
+
+  const handleRenamePlaylist = async () => {
+    if (editingPlaylistId && renameValue.trim()) {
+      await renamePlaylist(editingPlaylistId, renameValue.trim());
+      setIsRenameModalVisible(false);
+      setEditingPlaylistId(null);
+      setRenameValue('');
+    }
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    Alert.alert(
+      'Delete Playlist',
+      `Are you sure you want to delete "${name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deletePlaylist(id) }
+      ]
+    );
+  };
+
+  const showMenu = (item: any) => {
+    Alert.alert(item.name, 'Choose an action', [
+      {
+        text: 'Rename', onPress: () => {
+          setEditingPlaylistId(item.id);
+          setRenameValue(item.name);
+          setIsRenameModalVisible(true);
+        }
+      },
+      { text: 'Delete Playlist', style: 'destructive', onPress: () => handleDelete(item.id, item.name) },
+      { text: 'Cancel', style: 'cancel' }
+    ]);
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -80,7 +74,7 @@ const PlaylistScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
+      {/* Search Placeholder */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="rgba(255,255,255,0.4)" />
         <TextInput
@@ -91,7 +85,11 @@ const PlaylistScreen = () => {
       </View>
 
       {/* Create New Card */}
-      <TouchableOpacity style={styles.createCard} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.createCard}
+        activeOpacity={0.8}
+        onPress={() => setIsCreateModalVisible(true)}
+      >
         <View style={styles.createIconContainer}>
           <Ionicons name="add" size={24} color={COLORS.primary} />
         </View>
@@ -104,29 +102,40 @@ const PlaylistScreen = () => {
     </View>
   );
 
-  const renderPlaylistItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.playlistItem} activeOpacity={0.7}>
-      <View style={styles.playlistArtContainer}>
-        {/* Use Gradient for art placeholder if image fails/we want abstract look, 
-                    but simpler to just use Image or View with background color for now per design */}
-        <LinearGradient
-          colors={item.gradient}
-          style={styles.playlistArt}
-        />
-        {item.isOffline && (
-          <View style={styles.offlineBadge}>
-            <Ionicons name="checkmark" size={10} color="#FFF" />
-          </View>
-        )}
+  const getGradientForPlaylist = (index: number): [string, string] => {
+    const gradients: [string, string][] = [
+      [COLORS.primary, '#9b59b6'],
+      ['#3498db', '#2980b9'],
+      ['#e67e22', '#d35400'],
+      ['#1abc9c', '#16a085'],
+      ['#f1c40f', '#f39c12'],
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  const renderPlaylistItem = ({ item, index }: { item: any, index: number }) => (
+    <TouchableOpacity
+      style={styles.playlistCard}
+      activeOpacity={0.8}
+      onPress={() => router.push(`/playlist/${item.id}`)}
+    >
+      <LinearGradient
+        colors={getGradientForPlaylist(index)}
+        style={styles.playlistCardGradient}
+      >
+        <MaterialCommunityIcons name="playlist-music" size={32} color="rgba(255,255,255,0.8)" />
+      </LinearGradient>
+
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardMeta}>{item.tracks.length} Tracks</Text>
       </View>
 
-      <View style={styles.playlistInfo}>
-        <Text style={styles.playlistTitle}>{item.title}</Text>
-        <Text style={styles.playlistMeta}>{item.count} • {item.duration}</Text>
-      </View>
-
-      <TouchableOpacity style={styles.moreButton}>
-        <MaterialCommunityIcons name="dots-vertical" size={24} color="rgba(255,255,255,0.5)" />
+      <TouchableOpacity
+        style={styles.cardMenu}
+        onPress={() => showMenu(item)}
+      >
+        <Ionicons name="ellipsis-vertical" size={16} color="rgba(255,255,255,0.6)" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -134,18 +143,94 @@ const PlaylistScreen = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={PLAYLISTS}
+        data={playlists}
         renderItem={renderPlaylistItem}
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="music-note-off" size={64} color="rgba(255,255,255,0.1)" />
+            <Text style={styles.emptyText}>No playlists yet</Text>
+          </View>
+        }
       />
+
+      {/* Create Modal */}
+      <Modal
+        visible={isCreateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsCreateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>New Playlist</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Playlist name"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={newPlaylistName}
+              onChangeText={setNewPlaylistName}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsCreateModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleCreatePlaylist}
+              >
+                <Text style={styles.saveButtonText}>Create</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Rename Modal */}
+      <Modal
+        visible={isRenameModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsRenameModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Rename Playlist</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={renameValue}
+              onChangeText={setRenameValue}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsRenameModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleRenamePlaylist}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
-
-export default PlaylistScreen
 
 const styles = StyleSheet.create({
   container: {
@@ -153,7 +238,51 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundDark,
   },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
+  },
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+  },
+  playlistCard: {
+    width: (width - 45) / 2, // Slightly adjusted for better spacing
+    backgroundColor: 'rgba(30, 30, 46, 0.4)',
+    borderRadius: 20,
+    marginBottom: 15,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  playlistCardGradient: {
+    width: '100%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardInfo: {
+    padding: 12,
+  },
+  cardTitle: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  cardMeta: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cardMenu: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     paddingTop: 50,
@@ -210,8 +339,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderStyle: 'dashed', // Dashed border as seen vaguely in design or common for "add" actions
+    borderColor: 'rgba(108, 99, 255, 0.2)',
+    borderStyle: 'dashed',
     marginBottom: 10,
   },
   createIconContainer: {
@@ -236,48 +365,79 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
   },
-  playlistItem: {
-    flexDirection: 'row',
+  emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    marginTop: 100,
   },
-  playlistArtContainer: {
-    position: 'relative',
+  emptyText: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 16,
+    marginTop: 10,
   },
-  playlistArt: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-  },
-  offlineBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.primary,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.backgroundDark,
+    padding: 20,
   },
-  playlistInfo: {
+  modalContent: {
+    backgroundColor: '#1E1E2E',
+    width: '100%',
+    borderRadius: 24,
+    padding: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 20,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    height: 55,
+    paddingHorizontal: 20,
+    color: '#FFF',
+    fontSize: 16,
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  modalButton: {
     flex: 1,
-    marginLeft: 15,
+    height: 50,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  playlistTitle: {
+  cancelButton: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+  },
+  cancelButtonText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonText: {
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
   },
-  playlistMeta: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-  },
-  moreButton: {
-    padding: 5,
-  },
-})
+});
+
+export default PlaylistScreen;

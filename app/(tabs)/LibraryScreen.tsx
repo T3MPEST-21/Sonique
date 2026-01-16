@@ -3,10 +3,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Dimensions, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { Track, useAudio } from '../../contexts/AudioContext'
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const TRACKS = [
   {
@@ -55,11 +55,18 @@ const FILTERS = ['All Moods', 'Calm', 'Energetic', 'Melancholic', 'Focus', 'Work
 
 const LibraryScreen = () => {
   const router = useRouter();
-  const { currentTrack, isPlaying, playTrack, pauseTrack, loadLocalMusic, activeMood, setActiveMood, position, duration } = useAudio();
+  const {
+    currentTrack, isPlaying, playTrack, pauseTrack, loadLocalMusic,
+    activeMood, setActiveMood, position, duration, playlists, addTrackToPlaylist
+  } = useAudio();
   const [isOnline, setIsOnline] = useState(true);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Playlist Modal State
+  const [isPlaylistModalVisible, setIsPlaylistModalVisible] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
   useEffect(() => {
     const fetchMusic = async () => {
@@ -149,11 +156,24 @@ const LibraryScreen = () => {
     </View>
   );
 
+  const handleAddToPlaylist = (track: Track) => {
+    setSelectedTrack(track);
+    setIsPlaylistModalVisible(true);
+  };
+
+  const selectPlaylist = async (playlistId: string) => {
+    if (selectedTrack) {
+      await addTrackToPlaylist(playlistId, selectedTrack);
+      setIsPlaylistModalVisible(false);
+      Alert.alert('Success', `Added ${selectedTrack.title} to playlist`);
+    }
+  };
+
   const renderTrackItem = ({ item }: { item: Track }) => (
     <TouchableOpacity
       style={styles.trackItem}
       activeOpacity={0.7}
-      onPress={() => playTrack(item)}
+      onPress={() => playTrack(item, filteredTracks)}
     >
       <View style={[styles.trackImage, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
         <Ionicons name="musical-note" size={24} color="rgba(255,255,255,0.3)" />
@@ -169,11 +189,9 @@ const LibraryScreen = () => {
       </View>
 
       <View style={styles.trackActions}>
-        {item.isDownloaded && (
-          <View style={styles.downloadIcon}>
-            <Ionicons name="checkmark-circle" size={16} color="#2ecc71" />
-          </View>
-        )}
+        <TouchableOpacity onPress={() => handleAddToPlaylist(item)}>
+          <MaterialCommunityIcons name="playlist-plus" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
         <TouchableOpacity>
           <MaterialCommunityIcons name="dots-vertical" size={24} color="rgba(255,255,255,0.5)" />
         </TouchableOpacity>
@@ -209,7 +227,11 @@ const LibraryScreen = () => {
       >
         {/* Progress Line */}
         <View style={styles.progressBar}>
-          <View style={{ width: '30%', height: '100%', backgroundColor: COLORS.primary }} />
+          <View style={{
+            width: `${duration > 0 ? (position / duration) * 100 : 0}%`,
+            height: '100%',
+            backgroundColor: COLORS.primary
+          }} />
         </View>
 
         <View style={styles.playerContent}>
@@ -238,6 +260,61 @@ const LibraryScreen = () => {
           </View>
         </View>
       </TouchableOpacity>
+
+      {/* Playlist Selector Modal */}
+      <Modal
+        visible={isPlaylistModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsPlaylistModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsPlaylistModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add to Playlist</Text>
+              <TouchableOpacity onPress={() => setIsPlaylistModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={playlists}
+              keyExtractor={item => item.id}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No playlists created yet</Text>
+                  <TouchableOpacity
+                    style={styles.createNowButton}
+                    onPress={() => {
+                      setIsPlaylistModalVisible(false);
+                      router.push('/PlaylistScreen');
+                    }}
+                  >
+                    <Text style={styles.createNowText}>Go create one</Text>
+                  </TouchableOpacity>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.playlistOption}
+                  onPress={() => selectPlaylist(item.id)}
+                >
+                  <LinearGradient
+                    colors={[COLORS.primary, '#9b59b6']}
+                    style={styles.playlistThumb}
+                  />
+                  <Text style={styles.playlistName}>{item.name}</Text>
+                  <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   )
 }
@@ -455,5 +532,70 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1E1E2E',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    minHeight: height * 0.4,
+    maxHeight: height * 0.7,
+    padding: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  playlistOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  playlistThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  playlistName: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 50,
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    marginBottom: 15,
+  },
+  createNowButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  createNowText: {
+    color: '#FFF',
+    fontWeight: '700',
   },
 })

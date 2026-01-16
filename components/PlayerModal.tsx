@@ -10,7 +10,10 @@ const { width, height } = Dimensions.get('window');
 
 const PlayerModal = () => {
     const router = useRouter();
-    const { currentTrack, isPlaying, playTrack, pauseTrack, resumeTrack, position, duration } = useAudio();
+    const {
+        currentTrack, isPlaying, playTrack, pauseTrack, resumeTrack,
+        position, duration, nextTrack, previousTrack
+    } = useAudio();
     const [isLiked, setIsLiked] = useState(false);
 
     const formatTime = (millis: number) => {
@@ -99,7 +102,7 @@ const PlayerModal = () => {
                 </TouchableOpacity>
 
                 <View style={styles.mainControls}>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={previousTrack}>
                         <Ionicons name="play-skip-back" size={32} color="#FFF" />
                     </TouchableOpacity>
 
@@ -116,7 +119,7 @@ const PlayerModal = () => {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={nextTrack}>
                         <Ionicons name="play-skip-forward" size={32} color="#FFF" />
                     </TouchableOpacity>
                 </View>

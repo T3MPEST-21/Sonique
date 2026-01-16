@@ -1,7 +1,8 @@
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as MediaLibrary from 'expo-media-library';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { Playlist, Storage } from '../helpers/storage';
 
 // Define the shape of a Track
 export interface Track {
@@ -17,99 +18,112 @@ export interface Track {
 interface AudioContextType {
     currentTrack: Track | null;
     isPlaying: boolean;
-    playTrack: (track: Track) => Promise<void>;
-    pauseTrack: () => Promise<void>;
-    resumeTrack: () => Promise<void>;
+    playTrack: (track: Track, newQueue?: Track[]) => Promise<void>;
+    pauseTrack: () => void;
+    resumeTrack: () => void;
+    nextTrack: () => void;
+    previousTrack: () => void;
     loadLocalMusic: () => Promise<Track[]>;
-    sound: Audio.Sound | null;
+    player: AudioPlayer | null;
     position: number;
     duration: number;
     activeMood: string;
     setActiveMood: (mood: string) => void;
+    playlists: Playlist[];
+    createPlaylist: (name: string) => Promise<void>;
+    addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
+    removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+    renamePlaylist: (playlistId: string, newName: string) => Promise<void>;
+    deletePlaylist: (playlistId: string) => Promise<void>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
-    const [sound, setSound] = useState<Audio.Sound | null>(null);
+    const [player, setPlayer] = useState<AudioPlayer | null>(null);
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+    const [queue, setQueue] = useState<Track[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(0);
     const [activeMood, setActiveMood] = useState('All Moods');
+    const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
-    // Setup Audio Mode on mount
+    // Setup Audio Mode and Load Data on mount
     useEffect(() => {
         const setupAudio = async () => {
             try {
-                await Audio.setAudioModeAsync({
-                    staysActiveInBackground: true,
-                    playsInSilentModeIOS: true,
-                    shouldDuckAndroid: true,
-                    playThroughEarpieceAndroid: false,
-                    interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-                    interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+                await setAudioModeAsync({
+                    shouldPlayInBackground: true,
+                    playsInSilentMode: true,
+                    interruptionMode: 'doNotMix',
                 });
+
+                const savedPlaylists = await Storage.loadPlaylists();
+                setPlaylists(savedPlaylists);
             } catch (error) {
-                console.error("Error setting up audio mode", error);
+                console.error("Error setting up audio mode or loading data", error);
             }
         };
         setupAudio();
     }, []);
 
-    // Unload sound on unmount
+    // Cleanup player on unmount
     useEffect(() => {
         return () => {
-            if (sound) {
-                sound.unloadAsync();
+            if (player) {
+                player.remove();
             }
         };
-    }, [sound]);
+    }, [player]);
 
-    const playTrack = async (track: Track) => {
+    const playTrack = async (track: Track, newQueue?: Track[]) => {
         try {
-            // Include complex logic: if same song, toggle play code etc.
-            if (currentTrack?.id === track.id && sound) {
+            if (newQueue) {
+                setQueue(newQueue);
+            } else if (queue.length === 0) {
+                setQueue([track]);
+            }
+
+            if (currentTrack?.id === track.id && player) {
                 if (isPlaying) {
-                    await pauseTrack();
+                    pauseTrack();
                 } else {
-                    await resumeTrack();
+                    resumeTrack();
                 }
                 return;
             }
 
-            // Unload previous sound
-            if (sound) {
-                await sound.unloadAsync();
+            // Create or replace player
+            let currentPlayer = player;
+            if (!currentPlayer) {
+                currentPlayer = createAudioPlayer(track.uri, { updateInterval: 100 });
+                setPlayer(currentPlayer);
+            } else {
+                currentPlayer.replace(track.uri);
             }
 
-            const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri: track.uri },
-                { shouldPlay: true }
-            );
-
-            setSound(newSound);
             setCurrentTrack(track);
             setIsPlaying(true);
+            currentPlayer.play();
+
+            // Set lock screen info - wrap in safety check as it may not be available on all Android builds/versions
+            if (typeof currentPlayer.setActiveForLockScreen === 'function') {
+                currentPlayer.setActiveForLockScreen(true, {
+                    title: track.title,
+                    artist: track.artist || 'Sonique Artist',
+                    artworkUrl: track.artwork,
+                });
+            }
 
             // Listen to playback updates
-            newSound.setOnPlaybackStatusUpdate((status) => {
-                if (status.isLoaded) {
-                    setPosition(status.positionMillis);
-                    setDuration(status.durationMillis || 0);
-                    setIsPlaying(status.isPlaying);
+            currentPlayer.addListener('playbackStatusUpdate', (status) => {
+                setPosition(status.currentTime * 1000);
+                setDuration(status.duration * 1000);
+                setIsPlaying(status.playing);
 
-                    // Handle completion
-                    if (status.didJustFinish) {
-                        setIsPlaying(false);
-                        // Optional: Play next logic here
-                    }
-
-                    // Handle interruptions (ducking/pausing)
-                    if (status.isLoaded && !status.isPlaying && status.shouldPlay) {
-                        // This usually happens during an interruption if not handled by OS automatically
-                        console.log("Audio interrupted or paused by system");
-                    }
+                if (status.didJustFinish) {
+                    nextTrack();
                 }
             });
 
@@ -118,18 +132,35 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const pauseTrack = async () => {
-        if (sound) {
-            await sound.pauseAsync();
+    const pauseTrack = () => {
+        if (player) {
+            player.pause();
             setIsPlaying(false);
         }
     };
 
-    const resumeTrack = async () => {
-        if (sound) {
-            await sound.playAsync();
+    const resumeTrack = () => {
+        if (player) {
+            player.play();
             setIsPlaying(true);
         }
+    };
+
+    const nextTrack = () => {
+        if (queue.length === 0) return;
+        const currentIndex = queue.findIndex(t => t.id === currentTrack?.id);
+        const nextIndex = (currentIndex + 1) % queue.length;
+        if (nextIndex !== -1) {
+            playTrack(queue[nextIndex]);
+        }
+    };
+
+    const previousTrack = () => {
+        if (queue.length === 0) return;
+        const currentIndex = queue.findIndex(t => t.id === currentTrack?.id);
+        let prevIndex = currentIndex - 1;
+        if (prevIndex < 0) prevIndex = queue.length - 1;
+        playTrack(queue[prevIndex]);
     };
 
     const getMoodForTrack = (filename: string): string => {
@@ -170,6 +201,60 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         }));
     };
 
+    // Playlist Operations
+    const createPlaylist = async (name: string) => {
+        const newPlaylist: Playlist = {
+            id: Date.now().toString(),
+            name,
+            tracks: [],
+            createdAt: Date.now(),
+        };
+        const updated = [...playlists, newPlaylist];
+        setPlaylists(updated);
+        await Storage.savePlaylists(updated);
+    };
+
+    const addTrackToPlaylist = async (playlistId: string, track: Track) => {
+        const updatedPlaylists = playlists.map(p => {
+            if (p.id === playlistId) {
+                // Prevent duplicates
+                if (p.tracks.find(t => t.id === track.id)) return p;
+                return { ...p, tracks: [...p.tracks, track] };
+            }
+            return p;
+        });
+        setPlaylists(updatedPlaylists);
+        await Storage.savePlaylists(updatedPlaylists);
+    };
+
+    const removeTrackFromPlaylist = async (playlistId: string, trackId: string) => {
+        const updatedPlaylists = playlists.map(p => {
+            if (p.id === playlistId) {
+                return { ...p, tracks: p.tracks.filter(t => t.id !== trackId) };
+            }
+            return p;
+        });
+        setPlaylists(updatedPlaylists);
+        await Storage.savePlaylists(updatedPlaylists);
+    };
+
+    const renamePlaylist = async (playlistId: string, newName: string) => {
+        const updatedPlaylists = playlists.map(p => {
+            if (p.id === playlistId) {
+                return { ...p, name: newName };
+            }
+            return p;
+        });
+        setPlaylists(updatedPlaylists);
+        await Storage.savePlaylists(updatedPlaylists);
+    };
+
+    const deletePlaylist = async (playlistId: string) => {
+        const updated = playlists.filter(p => p.id !== playlistId);
+        setPlaylists(updated);
+        await Storage.savePlaylists(updated);
+    };
+
     return (
         <AudioContext.Provider value={{
             currentTrack,
@@ -177,12 +262,20 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
             playTrack,
             pauseTrack,
             resumeTrack,
+            nextTrack,
+            previousTrack,
             loadLocalMusic,
-            sound,
+            player,
             position,
             duration,
             activeMood,
             setActiveMood,
+            playlists,
+            createPlaylist,
+            addTrackToPlaylist,
+            removeTrackFromPlaylist,
+            renamePlaylist,
+            deletePlaylist,
         }}>
             {children}
         </AudioContext.Provider>
