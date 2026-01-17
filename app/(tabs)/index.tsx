@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDark,
   },
   listContainer: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   bodyContent: {
     marginBottom: 10,

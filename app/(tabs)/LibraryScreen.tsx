@@ -5,17 +5,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import ActionMenu, { MenuItem } from "../../components/ActionMenu";
 import { Track, useAudio } from "../../contexts/AudioContext";
@@ -396,74 +396,6 @@ const LibraryScreen = () => {
         )}
       </View>
 
-      {/* Mini Player */}
-      <TouchableOpacity
-        style={styles.miniPlayer}
-        activeOpacity={0.9}
-        onPress={() => router.push("/PlayerModal")}
-      >
-        {/* Progress Line */}
-        <View style={styles.progressBar}>
-          <View
-            style={{
-              width: `${duration > 0 ? (position / duration) * 100 : 0}%`,
-              height: "100%",
-              backgroundColor: COLORS.primary,
-            }}
-          />
-        </View>
-
-        <View style={styles.playerContent}>
-          <View
-            style={[
-              styles.miniArt,
-              {
-                backgroundColor: "#333",
-                justifyContent: "center",
-                alignItems: "center",
-              },
-            ]}
-          >
-            <Ionicons
-              name="musical-note"
-              size={20}
-              color="rgba(255,255,255,0.3)"
-            />
-          </View>
-          <View style={styles.miniInfo}>
-            <Text style={styles.miniTitle} numberOfLines={1}>
-              {currentTrack?.title || "No Track Selected"}
-            </Text>
-            <Text style={styles.miniArtist} numberOfLines={1}>
-              {currentTrack?.artist || "..."}
-            </Text>
-          </View>
-
-          <View style={styles.miniControls}>
-            <TouchableOpacity onPress={pauseTrack}>
-              {isPlaying ? (
-                <View style={styles.playButton}>
-                  <Ionicons name="pause" size={20} color="#FFF" />
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => currentTrack && playTrack(currentTrack)}
-                >
-                  <View style={styles.playButton}>
-                    <Ionicons
-                      name="play"
-                      size={20}
-                      color="#FFF"
-                      style={{ marginLeft: 2 }}
-                    />
-                  </View>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-
       <ActionMenu
         visible={isHeaderMenuVisible}
         onClose={() => setIsHeaderMenuVisible(false)}
@@ -550,7 +482,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundDark,
   },
   listContent: {
-    paddingBottom: 100, // Space for mini player
+    paddingBottom: 100,
   },
   header: {
     paddingTop: 50,
@@ -654,7 +586,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 15,
-    backgroundColor: "rgba(30, 30, 46, 0.4)",
+    backgroundColor: "rgba(30,30,46,0.4)",
     paddingVertical: 10,
     marginHorizontal: 20,
     borderRadius: 16,
@@ -694,68 +626,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   downloadIcon: {},
-
-  // Mini Player
-  miniPlayer: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "#1E1E2E",
-    borderRadius: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  progressBar: {
-    height: 2,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    width: "100%",
-  },
-  playerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-  },
-  miniArt: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: "#333",
-  },
-  miniInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  miniTitle: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  miniArtist: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-  },
-  miniControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-  },
-  playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.8)",
