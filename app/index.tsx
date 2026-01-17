@@ -1,16 +1,16 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+    Animated,
+    Dimensions,
+    Image,
+    ImageBackground,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -36,8 +36,8 @@ export default function SplashScreen() {
     ]).start();
 
     // Progress bar animation
-    const duration = 3500; // 3.5 seconds
-    const interval = 50; // Update every 50ms
+    const duration = 1200; // 1.2 seconds
+    const interval = 30; // Update every 30ms
     const steps = duration / interval;
     let currentStep = 0;
 
@@ -55,9 +55,9 @@ export default function SplashScreen() {
       if (currentStep >= steps) {
         clearInterval(timer);
         // Navigate to tabs after completion
-        setTimeout(() => {  
+        setTimeout(() => {
           //@ts-ignore
-          router.replace('/(tabs)');
+          router.replace("/(tabs)");
         }, 300);
       }
     }, interval);
@@ -67,12 +67,12 @@ export default function SplashScreen() {
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 100],
-    outputRange: ['0%', '100%'],
+    outputRange: ["0%", "100%"],
   });
 
   return (
     <ImageBackground
-      source={require('@/assets/images/splash-screen-backround.png')}
+      source={require("@/assets/images/splash-screen-backround.png")}
       style={styles.container}
       resizeMode="cover"
     >
@@ -92,7 +92,7 @@ export default function SplashScreen() {
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Image
-              source={require('@/assets/images/sonique-logo.png')}
+              source={require("@/assets/images/sonique-logo.png")}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -117,10 +117,7 @@ export default function SplashScreen() {
         {/* Progress Bar */}
         <View style={styles.progressBarContainer}>
           <Animated.View
-            style={[
-              styles.progressBar,
-              { width: progressWidth }
-            ]}
+            style={[styles.progressBar, { width: progressWidth }]}
           />
         </View>
 
@@ -139,16 +136,16 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: "#1a1a2e",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 50,
   },
   logoContainer: {
@@ -158,12 +155,12 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(108, 99, 255, 0.15)',
+    backgroundColor: "rgba(108, 99, 255, 0.15)",
     borderWidth: 2,
-    borderColor: 'rgba(108, 99, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#6C63FF',
+    borderColor: "rgba(108, 99, 255, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#6C63FF",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -175,61 +172,61 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 48,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
     letterSpacing: 1,
     marginBottom: 8,
-    textShadowColor: 'rgba(108, 99, 255, 0.5)',
+    textShadowColor: "rgba(108, 99, 255, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
   tagline: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#8B7FFF',
+    fontWeight: "600",
+    color: "#8B7FFF",
     letterSpacing: 3,
   },
   bottomSection: {
     paddingBottom: 60,
     paddingHorizontal: 30,
-    width: '100%',
+    width: "100%",
   },
   loadingTextContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   loadingText: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: '400',
+    color: "rgba(255, 255, 255, 0.7)",
+    fontWeight: "400",
   },
   percentage: {
     fontSize: 15,
-    color: '#8B7FFF',
-    fontWeight: '600',
+    color: "#8B7FFF",
+    fontWeight: "600",
   },
   progressBarContainer: {
     height: 6,
-    backgroundColor: 'rgba(108, 99, 255, 0.2)',
+    backgroundColor: "rgba(108, 99, 255, 0.2)",
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 24,
   },
   progressBar: {
-    height: '100%',
-    backgroundColor: '#6C63FF',
+    height: "100%",
+    backgroundColor: "#6C63FF",
     borderRadius: 3,
-    shadowColor: '#6C63FF',
+    shadowColor: "#6C63FF",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
   statusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     opacity: 0.6,
   },
   cloudIcon: {
@@ -240,7 +237,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '400',
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "400",
   },
 });
