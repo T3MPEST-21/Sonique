@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/theme";
 import { Track, useAudio } from "@/contexts/AudioContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,9 +18,161 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+    runOnJS,
+    SharedValue,
+    useAnimatedReaction,
+    useAnimatedRef,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from "react-native-reanimated";
 import ActionMenu, { MenuItem } from "../../components/ActionMenu";
 
 const { width, height } = Dimensions.get("window");
+const ITEM_HEIGHT = 80;
+
+const DraggableTrackItem = ({
+  item,
+  index,
+  count,
+  currentTrackId,
+  onPlay,
+  onMenu,
+  activeId,
+  positions,
+  onMove,
+  isManual,
+}: {
+  item: Track;
+  index: number;
+  count: number;
+  currentTrackId?: string;
+  onPlay: (item: Track) => void;
+  onMenu: (item: Track) => void;
+  activeId: SharedValue<string | null>;
+  positions: SharedValue<Record<string, number>>;
+  onMove: (id: string, newIndex: number) => void;
+  isManual: boolean;
+}) => {
+  const isPlaying = currentTrackId === item.id;
+  const top = useSharedValue(index * ITEM_HEIGHT);
+  const isDragging = useSharedValue(false);
+  const dragY = useSharedValue(0);
+
+  const triggerHaptic = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  useAnimatedReaction(
+    () => positions.value[item.id],
+    (newPos, prevPos) => {
+      if (
+        newPos !== undefined &&
+        newPos !== prevPos &&
+        activeId.value !== item.id
+      ) {
+        top.value = withSpring(newPos * ITEM_HEIGHT);
+      }
+    },
+  );
+
+  const gesture = Gesture.Pan()
+    .enabled(isManual)
+    .activateAfterLongPress(1200)
+    .onStart(() => {
+      runOnJS(triggerHaptic)();
+      isDragging.value = true;
+      activeId.value = item.id;
+    })
+    .onUpdate((e) => {
+      dragY.value = e.translationY;
+      const currentPos = positions.value[item.id] * ITEM_HEIGHT + dragY.value;
+      const newIndex = Math.max(
+        0,
+        Math.min(Math.round(currentPos / ITEM_HEIGHT), count - 1),
+      );
+
+      if (newIndex !== positions.value[item.id]) {
+        runOnJS(onMove)(item.id, newIndex);
+      }
+    })
+    .onFinalize(() => {
+      top.value = withSpring(positions.value[item.id] * ITEM_HEIGHT);
+      dragY.value = withSpring(0);
+      isDragging.value = false;
+      activeId.value = null;
+    });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const isThisActive = activeId.value === item.id;
+    return {
+      top: isThisActive
+        ? positions.value[item.id] * ITEM_HEIGHT + dragY.value
+        : top.value,
+      zIndex: isThisActive ? 100 : 1,
+      transform: [{ scale: withSpring(isThisActive ? 1.05 : 1) }],
+      shadowOpacity: withSpring(isThisActive ? 0.3 : 0),
+      backgroundColor: isThisActive ? "rgba(255,255,255,0.05)" : "transparent",
+    };
+  });
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[styles.draggableTrackItem, animatedStyle]}>
+        <View style={styles.trackArtContainer}>
+          {item.artwork ? (
+            <ExpoImage source={{ uri: item.artwork }} style={styles.trackArt} />
+          ) : (
+            <View
+              style={[
+                styles.trackArt,
+                {
+                  backgroundColor: "#333",
+                  justifyContent: "center",
+                  alignItems: "center",
+                },
+              ]}
+            >
+              <Ionicons
+                name="musical-note"
+                size={20}
+                color="rgba(255,255,255,0.2)"
+              />
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.trackInfo}
+          onPress={() => onPlay(item)}
+          disabled={isDragging.value}
+        >
+          <Text
+            style={[styles.trackTitle, isPlaying && { color: COLORS.primary }]}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+          <Text style={styles.trackArtist} numberOfLines={1}>
+            {item.artist || "Unknown Artist"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.trackMenuButton}
+          onPress={() => onMenu(item)}
+          disabled={isDragging.value}
+        >
+          <Ionicons
+            name="ellipsis-vertical"
+            size={20}
+            color="rgba(255,255,255,0.3)"
+          />
+        </TouchableOpacity>
+      </Animated.View>
+    </GestureDetector>
+  );
+};
 
 const PlaylistDetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -37,7 +190,11 @@ const PlaylistDetailScreen = () => {
     renamePlaylist,
     updatePlaylistArtwork,
     reloadLibrary,
+    reorderPlaylistTrack,
   } = useAudio();
+
+  const activeId = useSharedValue<string | null>(null);
+  const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
 
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,7 +209,7 @@ const PlaylistDetailScreen = () => {
   const [sortConfig, setSortConfig] = useState<{
     type: string;
     direction: "asc" | "desc";
-  }>({ type: "name", direction: "asc" });
+  }>({ type: "manual", direction: "asc" });
 
   const playlist = useMemo(
     () => playlists.find((p) => p.id === id),
@@ -61,6 +218,8 @@ const PlaylistDetailScreen = () => {
 
   const sortedTracks = useMemo(() => {
     if (!playlist) return [];
+    if (sortConfig.type === "manual") return playlist.tracks;
+
     let result = [...playlist.tracks];
 
     result.sort((a, b) => {
@@ -80,6 +239,46 @@ const PlaylistDetailScreen = () => {
     });
     return result;
   }, [playlist, sortConfig]);
+
+  const positions = useSharedValue<Record<string, number>>({});
+
+  useEffect(() => {
+    if (playlist) {
+      positions.value = Object.fromEntries(
+        playlist.tracks.map((t, i) => [t.id, i]),
+      );
+    }
+  }, [playlist]);
+
+  const handleManualMove = (id: string, newIndex: number) => {
+    const oldIndex = positions.value[id];
+    if (oldIndex === undefined || oldIndex === newIndex) return;
+
+    const newPositions = { ...positions.value };
+    for (const trackId in newPositions) {
+      if (trackId === id) continue;
+      if (oldIndex < newIndex) {
+        if (
+          newPositions[trackId] > oldIndex &&
+          newPositions[trackId] <= newIndex
+        ) {
+          newPositions[trackId]--;
+        }
+      } else {
+        if (
+          newPositions[trackId] < oldIndex &&
+          newPositions[trackId] >= newIndex
+        ) {
+          newPositions[trackId]++;
+        }
+      }
+    }
+    newPositions[id] = newIndex;
+    positions.value = newPositions;
+    if (playlist) {
+      reorderPlaylistTrack(playlist.id, oldIndex, newIndex);
+    }
+  };
 
   useEffect(() => {
     const fetchTracks = async () => {
@@ -174,7 +373,12 @@ const PlaylistDetailScreen = () => {
     <TouchableOpacity
       style={styles.trackItem}
       activeOpacity={0.7}
-      onPress={() => playTrack(item, sortedTracks)}
+      onPress={() =>
+        playTrack(item, sortedTracks, false, {
+          type: "playlist",
+          id: playlist.id,
+        })
+      }
     >
       <View
         style={[
@@ -234,6 +438,11 @@ const PlaylistDetailScreen = () => {
 
   const playlistMenuItems: MenuItem[] = [
     { label: "Select Songs", icon: "checkbox-outline", onPress: () => {} },
+    {
+      label: "Sort: Manual",
+      icon: "reorder-three-outline",
+      onPress: () => setSortConfig({ type: "manual", direction: "asc" }),
+    },
     {
       label: "Sort: Name (A-Z)",
       icon: "text",
@@ -314,7 +523,10 @@ const PlaylistDetailScreen = () => {
 
   const handlePlayAll = () => {
     if (sortedTracks.length > 0) {
-      playTrack(sortedTracks[0], sortedTracks);
+      playTrack(sortedTracks[0], sortedTracks, false, {
+        type: "playlist",
+        id: playlist.id,
+      });
     }
   };
 
@@ -340,59 +552,57 @@ const PlaylistDetailScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={sortedTracks}
-        renderItem={renderTrackItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={true}
-        ListHeaderComponent={
-          <View style={styles.playlistHeader}>
-            {playlist.artworkUri ? (
-              <ExpoImage
-                source={{ uri: playlist.artworkUri }}
-                style={styles.bigArtImage}
-                transition={300}
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.listContent,
+          { height: Math.max(height, sortedTracks.length * ITEM_HEIGHT + 600) },
+        ]}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.playlistHeader}>
+          {playlist.artworkUri ? (
+            <ExpoImage
+              source={{ uri: playlist.artworkUri }}
+              style={styles.bigArtImage}
+              transition={300}
+            />
+          ) : (
+            <LinearGradient
+              colors={[COLORS.primary, "#9b59b6"]}
+              style={styles.bigArt}
+            >
+              <MaterialCommunityIcons
+                name="playlist-music"
+                size={80}
+                color="rgba(255,255,255,0.5)"
               />
-            ) : (
-              <LinearGradient
-                colors={[COLORS.primary, "#9b59b6"]}
-                style={styles.bigArt}
-              >
-                <MaterialCommunityIcons
-                  name="playlist-music"
-                  size={80}
-                  color="rgba(255,255,255,0.5)"
-                />
-              </LinearGradient>
-            )}
-            <Text style={styles.playlistName}>{playlist.name}</Text>
-            <Text style={styles.playlistStats}>
-              {playlist.tracks.length} Songs • Personal Mix
-            </Text>
+            </LinearGradient>
+          )}
+          <Text style={styles.playlistName}>{playlist.name}</Text>
+          <Text style={styles.playlistStats}>
+            {playlist.tracks.length} Songs • Personal Mix
+          </Text>
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.playAllButton}
-                onPress={handlePlayAll}
-              >
-                <Ionicons name="play" size={24} color="#FFF" />
-                <Text style={styles.playAllText}>Play All</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.addSongsButton}
-                onPress={() => setIsAddModalVisible(true)}
-              >
-                <Ionicons name="add" size={24} color={COLORS.primary} />
-                <Text style={styles.addSongsText}>Add Songs</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.playAllButton}
+              onPress={handlePlayAll}
+            >
+              <Ionicons name="play" size={24} color="#FFF" />
+              <Text style={styles.playAllText}>Play All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addSongsButton}
+              onPress={() => setIsAddModalVisible(true)}
+            >
+              <Ionicons name="add" size={24} color={COLORS.primary} />
+              <Text style={styles.addSongsText}>Add Songs</Text>
+            </TouchableOpacity>
           </View>
-        }
-        ListEmptyComponent={
+        </View>
+
+        {sortedTracks.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
               name="music-off"
@@ -407,8 +617,114 @@ const PlaylistDetailScreen = () => {
               <Text style={styles.emptyAddText}>Start adding songs</Text>
             </TouchableOpacity>
           </View>
-        }
-      />
+        ) : (
+          <View
+            style={[
+              styles.tracksContainer,
+              { height: sortedTracks.length * ITEM_HEIGHT },
+            ]}
+          >
+            {sortConfig.type === "manual"
+              ? playlist.tracks.map((item, index) => (
+                  <DraggableTrackItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    count={playlist.tracks.length}
+                    currentTrackId={currentTrack?.id}
+                    onPlay={(t) =>
+                      playTrack(t, playlist.tracks, false, {
+                        type: "playlist",
+                        id: playlist.id,
+                      })
+                    }
+                    onMenu={(t) => {
+                      setActiveTrack(t);
+                      setIsTrackMenuVisible(true);
+                    }}
+                    activeId={activeId}
+                    positions={positions}
+                    onMove={handleManualMove}
+                    isManual={true}
+                  />
+                ))
+              : sortedTracks.map((item, index) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.trackItem,
+                      { position: "static", marginHorizontal: 20 },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      style={styles.trackContent}
+                      onPress={() =>
+                        playTrack(item, sortedTracks, false, {
+                          type: "playlist",
+                          id: playlist.id,
+                        })
+                      }
+                    >
+                      <View style={styles.trackArtContainer}>
+                        {item.artwork ? (
+                          <ExpoImage
+                            source={{ uri: item.artwork }}
+                            style={styles.trackArt}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.trackArt,
+                              {
+                                backgroundColor: "#333",
+                                justifyContent: "center",
+                                alignItems: "center",
+                              },
+                            ]}
+                          >
+                            <Ionicons
+                              name="musical-note"
+                              size={20}
+                              color="rgba(255,255,255,0.2)"
+                            />
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.trackInfo}>
+                        <Text
+                          style={[
+                            styles.trackTitle,
+                            currentTrack?.id === item.id && {
+                              color: COLORS.primary,
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.title}
+                        </Text>
+                        <Text style={styles.trackArtist} numberOfLines={1}>
+                          {item.artist || "Unknown Artist"}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.trackMenuButton}
+                      onPress={() => {
+                        setActiveTrack(item);
+                        setIsTrackMenuVisible(true);
+                      }}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={20}
+                        color="rgba(255,255,255,0.3)"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+          </View>
+        )}
+      </Animated.ScrollView>
 
       {/* Add Songs Modal */}
       <Modal
@@ -608,11 +924,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 10,
     backgroundColor: "rgba(255, 255, 255, 0.03)",
     paddingVertical: 12,
+    borderRadius: 16,
+  },
+  draggableTrackItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    height: ITEM_HEIGHT,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
     marginHorizontal: 20,
     borderRadius: 16,
+    position: "absolute",
+    left: 0,
+    right: 0,
+  },
+  tracksContainer: {
+    position: "relative",
+  },
+  trackContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  trackArtContainer: {
+    width: 48,
+    height: 48,
   },
   trackArt: {
     width: 48,

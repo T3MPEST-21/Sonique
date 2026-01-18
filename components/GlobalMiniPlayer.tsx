@@ -24,6 +24,7 @@ const GlobalMiniPlayer = () => {
     resumeTrack,
     position,
     duration,
+    stopPlayback,
   } = useAudio();
 
   // Hide miniplayer on splash screen and player modal
@@ -37,7 +38,7 @@ const GlobalMiniPlayer = () => {
 
   return (
     <TouchableOpacity
-      style={[styles.container, { bottom: isInTabs ? 70 : 20 }]}
+      style={[styles.container, { bottom: isInTabs ? 70 : 50 }]}
       activeOpacity={0.9}
       onPress={() => router.push("/PlayerModal")}
     >
@@ -53,6 +54,12 @@ const GlobalMiniPlayer = () => {
       </View>
 
       <View style={styles.playerContent}>
+        
+        {/* Close button */}
+        <TouchableOpacity onPress={stopPlayback} style={styles.closeButton}>
+            <Ionicons name="close" size={20} color="rgba(255,255,255,0.5)" />
+          </TouchableOpacity>
+
         <View style={styles.miniArtContainer}>
           {currentTrack.artwork ? (
             <Image
@@ -92,6 +99,7 @@ const GlobalMiniPlayer = () => {
               style={!isPlaying && { marginLeft: 2 }}
             />
           </TouchableOpacity>
+          
         </View>
       </View>
     </TouchableOpacity>
@@ -163,6 +171,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 5,
   },
 });
 

@@ -1,14 +1,15 @@
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import * as MediaLibrary from "expo-media-library";
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 import { Alert } from "react-native";
 import { Playlist, Storage } from "../helpers/storage";
+import { loadAudioState, saveAudioState } from "../utils/persistence";
 
 // Define the shape of a Track
 export interface Track {
@@ -23,10 +24,26 @@ export interface Track {
   size?: number;
 }
 
+export interface PlaybackSource {
+  type: "library" | "playlist" | "mood";
+  id?: string;
+}
+
 interface AudioContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
-  playTrack: (track: Track, newQueue?: Track[]) => Promise<void>;
+  playTrack: (
+    track: Track,
+    newQueue?: Track[],
+    forcePlay?: boolean,
+    source?: PlaybackSource,
+  ) => Promise<void>;
+  playbackSource: PlaybackSource | null;
+  reorderPlaylistTrack: (
+    playlistId: string,
+    fromIndex: number,
+    toIndex: number,
+  ) => Promise<void>;
   pauseTrack: () => void;
   resumeTrack: () => void;
   nextTrack: () => void;
@@ -52,6 +69,20 @@ interface AudioContextType {
   ) => Promise<void>;
   reloadLibrary: () => Promise<void>;
   allTracks: Track[];
+  stopPlayback: () => void;
+  isShuffle: boolean;
+  loopMode: "none" | "all" | "one";
+  toggleShuffle: () => void;
+  toggleLoopMode: () => void;
+  queue: Track[];
+  removeFromQueue: (trackId: string) => void;
+  moveQueueItem: (fromIndex: number, toIndex: number) => void;
+  seek: (millis: number) => void;
+  sleepTimerEnd: number | null;
+  setSleepTimer: (minutes: number) => void;
+  cancelSleepTimer: () => void;
+  stopAtEndOfTrack: boolean;
+  setStopAtEndOfTrack: (value: boolean) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -66,6 +97,14 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeMood, setActiveMood] = useState("All Moods");
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [loopMode, setLoopMode] = useState<"none" | "all" | "one">("none");
+  const [originalQueue, setOriginalQueue] = useState<Track[]>([]);
+  const [sleepTimerEnd, setSleepTimerEnd] = useState<number | null>(null);
+  const [stopAtEndOfTrack, setStopAtEndOfTrack] = useState(false);
+  const [playbackSource, setPlaybackSource] = useState<PlaybackSource | null>(
+    null,
+  );
 
   // Setup Audio Mode and Load Data on mount
   useEffect(() => {
@@ -89,12 +128,58 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Refresh in background
         reloadLibrary();
+
+        // Load persistent audio state
+        const savedState = await loadAudioState();
+        if (savedState && savedState.currentTrack) {
+          setQueue(savedState.queue);
+          setOriginalQueue(savedState.originalQueue);
+          setIsShuffle(savedState.isShuffle);
+          setLoopMode(savedState.loopMode);
+
+          const restoredTrack = savedState.currentTrack;
+          setCurrentTrack(restoredTrack);
+
+          const currentPlayer = createAudioPlayer(restoredTrack.uri, {
+            updateInterval: 500,
+          });
+          setPlayer(currentPlayer);
+          setupPlayerListeners(currentPlayer, restoredTrack);
+        }
       } catch (error) {
         console.error("Error setting up audio mode or loading data", error);
       }
     };
     setupAudio();
   }, []);
+
+  // Sleep Timer logic
+  useEffect(() => {
+    if (!sleepTimerEnd) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (now >= sleepTimerEnd) {
+        stopPlayback();
+        setSleepTimerEnd(null);
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sleepTimerEnd]);
+
+  // Save state whenever it changes
+  useEffect(() => {
+    saveAudioState({
+      currentTrack,
+      queue,
+      originalQueue,
+      isShuffle,
+      loopMode,
+      lastSaved: Date.now(),
+    });
+  }, [currentTrack, queue, originalQueue, isShuffle, loopMode]);
 
   // Cleanup player on unmount
   useEffect(() => {
@@ -105,15 +190,63 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [player]);
 
-  const playTrack = async (track: Track, newQueue?: Track[]) => {
+  const setupPlayerListeners = (playerInstance: AudioPlayer, track: Track) => {
+    // Set lock screen info - wrap in safety check
+    if (typeof playerInstance.setActiveForLockScreen === "function") {
+      playerInstance.setActiveForLockScreen(
+        true,
+        {
+          title: track.title,
+          artist: track.artist || "Sonique Artist",
+          albumTitle: "Sonique",
+          artworkUrl: track.artwork,
+        },
+        {
+          showSeekForward: true,
+          showSeekBackward: true,
+        },
+      );
+    }
+
+    // Listen to playback updates
+    playerInstance.addListener("playbackStatusUpdate", (status) => {
+      setPosition(status.currentTime * 1000);
+      setDuration(status.duration * 1000);
+      setIsPlaying(status.playing);
+
+      if (status.didJustFinish) {
+        // Use a small timeout to avoid potential race conditions with state updates
+        setTimeout(() => handleTrackEnd(), 100);
+      }
+    });
+  };
+
+  const playTrack = async (
+    track: Track,
+    newQueue?: Track[],
+    forcePlay: boolean = false,
+    source?: PlaybackSource,
+  ) => {
     try {
+      if (source) setPlaybackSource(source);
+      else if (newQueue) setPlaybackSource({ type: "library" });
+
+      let finalQueue = newQueue || (queue.length > 0 ? queue : [track]);
+
       if (newQueue) {
-        setQueue(newQueue);
-      } else if (queue.length === 0) {
-        setQueue([track]);
+        setOriginalQueue(newQueue);
+        if (isShuffle) {
+          // Shuffle the new queue but keep the selected track first
+          const others = newQueue.filter((t) => t.id !== track.id);
+          const shuffled = [...others].sort(() => Math.random() - 0.5);
+          finalQueue = [track, ...shuffled];
+        } else {
+          finalQueue = newQueue;
+        }
+        setQueue(finalQueue);
       }
 
-      if (currentTrack?.id === track.id && player) {
+      if (!forcePlay && currentTrack?.id === track.id && player) {
         if (isPlaying) {
           pauseTrack();
         } else {
@@ -135,28 +268,20 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       setIsPlaying(true);
       currentPlayer.play();
 
-      // Set lock screen info - wrap in safety check as it may not be available on all Android builds/versions
-      if (typeof currentPlayer.setActiveForLockScreen === "function") {
-        currentPlayer.setActiveForLockScreen(true, {
-          title: track.title,
-          artist: track.artist || "Sonique Artist",
-          artworkUrl: track.artwork,
-        });
-      }
-
-      // Listen to playback updates
-      currentPlayer.addListener("playbackStatusUpdate", (status) => {
-        setPosition(status.currentTime * 1000);
-        setDuration(status.duration * 1000);
-        setIsPlaying(status.playing);
-
-        if (status.didJustFinish) {
-          nextTrack();
-        }
-      });
+      setupPlayerListeners(currentPlayer, track);
     } catch (error) {
       console.error("Error playing audio", error);
     }
+  };
+
+  const handleTrackEnd = () => {
+    if (loopMode === "one" && player) {
+      player.seekTo(0);
+      player.play();
+      setIsPlaying(true);
+      return;
+    }
+    nextTrack();
   };
 
   const pauseTrack = () => {
@@ -176,18 +301,147 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const nextTrack = () => {
     if (queue.length === 0) return;
     const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
-    const nextIndex = (currentIndex + 1) % queue.length;
-    if (nextIndex !== -1) {
-      playTrack(queue[nextIndex]);
+    let nextIndex = currentIndex + 1;
+
+    if (nextIndex >= queue.length) {
+      if (loopMode === "all") {
+        nextIndex = 0;
+      } else {
+        // Stop playback if we're at the end and not looping all
+        stopPlayback();
+        return;
+      }
     }
+
+    if (stopAtEndOfTrack) {
+      stopPlayback();
+      setStopAtEndOfTrack(false);
+      return;
+    }
+
+    playTrack(queue[nextIndex], undefined, true);
   };
 
   const previousTrack = () => {
-    if (queue.length === 0) return;
+    if (queue.length === 0 || !player) return;
+
+    // Standard behavior: if position > 3s, restart current track
+    if (position > 3000) {
+      player.seekTo(0);
+      player.play();
+      setIsPlaying(true);
+      return;
+    }
+
     const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
     let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) prevIndex = queue.length - 1;
-    playTrack(queue[prevIndex]);
+    if (prevIndex < 0) {
+      if (loopMode === "all") {
+        prevIndex = queue.length - 1;
+      } else {
+        // Just restart the first song if not looping all
+        player.seekTo(0);
+        player.play();
+        setIsPlaying(true);
+        return;
+      }
+    }
+    playTrack(queue[prevIndex], undefined, true);
+  };
+
+  const stopPlayback = () => {
+    if (player) {
+      player.pause();
+      if (typeof player.clearLockScreenControls === "function") {
+        player.clearLockScreenControls();
+      }
+    }
+    setCurrentTrack(null);
+    setIsPlaying(false);
+  };
+
+  const toggleShuffle = () => {
+    const newShuffle = !isShuffle;
+    setIsShuffle(newShuffle);
+
+    if (newShuffle) {
+      // Shuffle the current queue, keeping current track first
+      const others = queue.filter((t) => t.id !== currentTrack?.id);
+      const shuffled = [...others].sort(() => Math.random() - 0.5);
+      setQueue(currentTrack ? [currentTrack, ...shuffled] : shuffled);
+    } else {
+      // Restore from original queue
+      setQueue(originalQueue);
+    }
+  };
+
+  const toggleLoopMode = () => {
+    const modes: ("none" | "all" | "one")[] = ["none", "all", "one"];
+    const currentIndex = modes.indexOf(loopMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setLoopMode(modes[nextIndex]);
+  };
+
+  const removeFromQueue = (trackId: string) => {
+    setQueue((prev) => prev.filter((t) => t.id !== trackId));
+    setOriginalQueue((prev) => prev.filter((t) => t.id !== trackId));
+  };
+
+  const moveQueueItem = (fromIndex: number, toIndex: number) => {
+    setQueue((prev) => {
+      const newQueue = [...prev];
+      const [removed] = newQueue.splice(fromIndex, 1);
+      newQueue.splice(toIndex, 0, removed);
+      return newQueue;
+    });
+
+    // If not shuffling, also update the master original queue
+    if (!isShuffle) {
+      setOriginalQueue((prev) => {
+        const newQueue = [...prev];
+        const [removed] = newQueue.splice(fromIndex, 1);
+        newQueue.splice(toIndex, 0, removed);
+        return newQueue;
+      });
+    }
+  };
+
+  const reorderPlaylistTrack = async (
+    playlistId: string,
+    fromIndex: number,
+    toIndex: number,
+  ) => {
+    const updatedPlaylists = playlists.map((p) => {
+      if (p.id === playlistId) {
+        const newTracks = [...p.tracks];
+        const [moved] = newTracks.splice(fromIndex, 1);
+        newTracks.splice(toIndex, 0, moved);
+        return { ...p, tracks: newTracks };
+      }
+      return p;
+    });
+
+    setPlaylists(updatedPlaylists);
+    await Storage.savePlaylists(updatedPlaylists);
+  };
+
+  const setSleepTimer = (minutes: number) => {
+    if (minutes === 0) {
+      setSleepTimerEnd(null);
+    } else {
+      setSleepTimerEnd(Date.now() + minutes * 60 * 1000);
+    }
+  };
+
+  const cancelSleepTimer = () => {
+    setSleepTimerEnd(null);
+  };
+
+  const seek = (millis: number) => {
+    if (player) {
+      player.seekTo(millis / 1000);
+      setPosition(millis);
+    }
   };
 
   const getMoodForTrack = (filename: string): string => {
@@ -374,6 +628,22 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       updatePlaylistArtwork,
       reloadLibrary,
       allTracks,
+      stopPlayback,
+      isShuffle,
+      loopMode,
+      toggleShuffle,
+      toggleLoopMode,
+      queue,
+      removeFromQueue,
+      moveQueueItem,
+      playbackSource,
+      reorderPlaylistTrack,
+      seek,
+      sleepTimerEnd,
+      setSleepTimer,
+      cancelSleepTimer,
+      stopAtEndOfTrack,
+      setStopAtEndOfTrack,
     }),
     [
       currentTrack,
@@ -384,6 +654,12 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       playlists,
       allTracks,
       player,
+      isShuffle,
+      loopMode,
+      queue,
+      playbackSource,
+      sleepTimerEnd,
+      stopAtEndOfTrack,
     ],
   );
 

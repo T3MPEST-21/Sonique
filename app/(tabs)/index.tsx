@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+  import { COLORS } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
