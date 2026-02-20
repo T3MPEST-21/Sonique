@@ -1,39 +1,11 @@
-import TrackList from "@/components/TrackList";
-import { useLibraryStore } from "@/stores/library";
-import { defaultStyles } from "@/styles";
-import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { hp } from "../../../helpers/common";
+import { FAVORITES_ID } from '@/stores/libraryStore';
+import { Redirect } from 'expo-router';
+import React from 'react';
 
-const FavoritesScreen = () => {
-  const { tracks, favorites } = useLibraryStore();
-
-  const favoriteTracks = useMemo(() => {
-    return tracks.filter((track) => favorites.includes(track.url));
-  }, [tracks, favorites]);
-
-  return (
-    <View style={[defaultStyles.container, styles.container]}>
-      {favoriteTracks.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={defaultStyles.text}>No favorites yet</Text>
-        </View>
-      ) : (
-        <TrackList tracks={favoriteTracks} />
-      )}
-    </View>
-  );
-};
-
-export default FavoritesScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: hp(2),
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
+/**
+ * The Favorites tab simply redirects to the Favorites playlist detail screen.
+ * This makes Favorites a first-class playlist, not a separate concept.
+ */
+export default function FavoritesRedirect() {
+    return <Redirect href={`/(tabs)/Playlists/${FAVORITES_ID}`} />;
+}

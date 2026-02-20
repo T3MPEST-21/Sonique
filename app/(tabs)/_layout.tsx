@@ -30,34 +30,6 @@ const TabNav = () => {
         }}
       >
         <Tabs.Screen
-          name="Playlists"
-          options={{
-            title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="home"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
-            ),
-          }}
-        />
-
-        <Tabs.Screen
-          name="Favorites"
-          options={{
-            title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="heart"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
-            ),
-          }}
-        />
-
-        <Tabs.Screen
           name="(songs)"
           options={{
             title: "",
@@ -72,12 +44,40 @@ const TabNav = () => {
         />
 
         <Tabs.Screen
+          name="Playlists"
+          options={{
+            title: "",
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name="musical-notes"
+                size={24}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
           name="Artists"
           options={{
             title: "",
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name="person"
+                size={24}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="Favorites"
+          options={{
+            title: "",
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name="heart"
                 size={24}
                 color={focused ? colors.primary : colors.textMuted}
               />

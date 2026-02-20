@@ -11,7 +11,7 @@ const ArtistsScreenLayout = () => {
           name="index"
           options={{
             ...StackScreenOptions,
-            headerTitle: "Artists",
+            headerTitle: "",
           }}
         />
       </Stack>

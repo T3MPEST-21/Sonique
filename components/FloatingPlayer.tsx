@@ -1,100 +1,89 @@
-import { colors } from "@/constants/theme";
-import { defaultStyles } from "@/styles";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import TrackPlayer, {
-    useActiveTrack,
-    useIsPlaying,
-} from "react-native-track-player";
+import { colors, fonts } from '@/constants/theme';
+import { usePlayerStore } from '@/stores/playerStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export const FloatingPlayer = () => {
-  const activeTrack = useActiveTrack();
-  const { playing } = useIsPlaying();
+    const { activeTrack, isPlaying, play, pause, resume } = usePlayerStore();
+    const router = useRouter();
 
-  if (!activeTrack) return null;
+    if (!activeTrack) return null;
 
-  const handlePlayPause = () => {
-    if (playing) {
-      TrackPlayer.pause();
-    } else {
-      TrackPlayer.play();
-    }
-  };
+    const togglePlayback = async () => {
+        if (isPlaying) {
+            await pause();
+        } else {
+            await resume();
+        }
+    };
 
-  return (
-    <TouchableOpacity activeOpacity={0.9} style={styles.container}>
-      <Image
-        source={{ uri: activeTrack.artwork ?? "https://placehold.co/40x40" }}
-        style={styles.artwork}
-      />
+    const handlePress = () => {
+        router.push('/player' as any);
+    };
 
-      <View style={styles.trackInfo}>
-        <Text numberOfLines={1} style={styles.title}>
-          {activeTrack.title}
-        </Text>
-        <Text numberOfLines={1} style={styles.artist}>
-          {activeTrack.artist || "Unknown Artist"}
-        </Text>
-      </View>
+    return (
+        <TouchableOpacity activeOpacity={0.9} onPress={handlePress} style={styles.container}>
+            <View style={styles.contentContainer}>
+                <View style={styles.artworkPlaceholder}>
+                    {/* TODO: Real artwork */}
+                    <Ionicons name="musical-notes" size={20} color={colors.textMuted} />
+                </View>
 
-      <View style={styles.controls}>
-        <TouchableOpacity onPress={() => TrackPlayer.skipToPrevious()}>
-          <Ionicons name="play-back" size={24} color={colors.text} />
+                <View style={styles.textContainer}>
+                    <Text style={styles.title} numberOfLines={1}>{activeTrack.title}</Text>
+                    <Text style={styles.artist} numberOfLines={1}>{activeTrack.artist}</Text>
+                </View>
+
+                <TouchableOpacity onPress={togglePlayback} hitSlop={10}>
+                    <Ionicons
+                        name={isPlaying ? "pause" : "play"}
+                        size={24}
+                        color={colors.text}
+                    />
+                </TouchableOpacity>
+            </View>
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={handlePlayPause}>
-          <Ionicons
-            name={playing ? "pause" : "play"}
-            size={30}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => TrackPlayer.skipToNext()}>
-          <Ionicons name="play-forward" size={24} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(25, 25, 25, 0.95)",
-    padding: 10,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    position: "absolute",
-    bottom: 80, // Above the tab bar
-    left: 0,
-    right: 0,
-    ...defaultStyles.text,
-  },
-  artwork: {
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-  },
-  trackInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  artist: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  controls: {
-    flexDirection: "row",
-    alignItems: "center",
-    columnGap: 20,
-    paddingHorizontal: 10,
-  },
+    container: {
+        position: 'absolute',
+        bottom: 78, // Above tab bar
+        left: 8,
+        right: 8,
+        backgroundColor: '#252525',
+        borderRadius: 12,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    contentContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    artworkPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        backgroundColor: colors.backgroundLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    textContainer: {
+        flex: 1,
+        marginRight: 12,
+    },
+    title: {
+        color: colors.text,
+        fontSize: fonts.xs,
+        fontWeight: '600',
+    },
+    artist: {
+        color: colors.textMuted,
+        fontSize: fonts.xs,
+    },
 });

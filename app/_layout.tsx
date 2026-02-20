@@ -22,6 +22,18 @@ export function RootNavigation() {
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="player"
+        options={{
+          presentation: 'card', // 'modal' allows swipe down but 'card' with gesture enabled is also fine. 
+          // 'modal' on Android is a bit full screen. 
+          // Let's stick to standard modal presentation or 'transparentModal' if we want the bottom sheet feel.
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
+          animationDuration: 400,
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

@@ -1,22 +1,10 @@
-import { defaultStyles } from "@/styles";
-import { Stack } from "expo-router";
-import { View } from "react-native";
-import { StackScreenOptions } from "../../../constants/_layout";
+import { Stack } from 'expo-router';
 
-const PlaylistsScreenLayout = () => {
+export default function PlaylistsLayout() {
   return (
-    <View style={defaultStyles.container}>
-      <Stack>
-        <Stack.Screen
-          name="index"
-          options={{
-            ...StackScreenOptions,
-            headerTitle: "Playlists",
-          }}
-        />
-      </Stack>
-    </View>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[id]" />
+    </Stack>
   );
-};
-
-export default PlaylistsScreenLayout;
+}
