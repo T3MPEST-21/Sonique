@@ -1,4 +1,4 @@
-import { colors, fonts } from '@/constants/theme';
+import { useTheme } from '@/constants/theme';
 import { Playlist } from '@/stores/libraryStore';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -10,14 +10,18 @@ interface PlaylistListItemProps {
 }
 
 const PlaylistListItem = ({ playlist, onPress }: PlaylistListItemProps) => {
+    const { colors, fonts, cornerRadius } = useTheme();
     return (
-        <TouchableOpacity style={styles.container} onPress={onPress}>
-            <View style={styles.artworkContainer}>
+        <TouchableOpacity
+            style={[styles.container, { backgroundColor: colors.backgroundLight, borderRadius: cornerRadius }]}
+            onPress={onPress}
+        >
+            <View style={[styles.artworkContainer, { borderRadius: cornerRadius * 0.7 }]}>
                 <Ionicons name="musical-notes" size={24} color={colors.textMuted} />
             </View>
             <View style={styles.infoContainer}>
-                <Text style={styles.name}>{playlist.name}</Text>
-                <Text style={styles.count}>{playlist.tracks.length} Songs</Text>
+                <Text style={[styles.name, { color: colors.text, fontSize: fonts.md }]}>{playlist.name}</Text>
+                <Text style={[styles.count, { color: colors.textMuted, fontSize: fonts.xs }]}>{playlist.trackIds.length} Songs</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
@@ -31,15 +35,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
-        paddingHorizontal: 8,
-        backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 12,
+        paddingHorizontal: 12,
+        marginBottom: 10,
     },
     artworkContainer: {
         width: 50,
         height: 50,
-        borderRadius: 8,
-        backgroundColor: colors.backgroundLight,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
@@ -48,13 +50,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     name: {
-        fontSize: fonts.md,
-        color: colors.text,
         fontWeight: '600',
     },
     count: {
-        fontSize: fonts.xs,
-        color: colors.textMuted,
         marginTop: 4,
     }
 });

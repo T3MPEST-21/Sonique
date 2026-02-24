@@ -1,13 +1,15 @@
 import { FloatingPlayer } from "@/components/FloatingPlayer";
-import { colors, fonts } from "@/constants/theme";
+import { useTheme } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 const TabNav = () => {
+  const { colors, fonts, isDark } = useTheme();
+
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: colors.primary,
@@ -24,7 +26,7 @@ const TabNav = () => {
             paddingTop: 8,
             paddingBottom: 10,
             height: 60,
-            backgroundColor: "rgba(25, 25, 25, 0.98)",
+            backgroundColor: isDark ? "rgba(25, 25, 25, 0.98)" : "rgba(255, 255, 255, 0.98)",
           },
           headerShown: false,
         }}
@@ -33,12 +35,8 @@ const TabNav = () => {
           name="(songs)"
           options={{
             title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="musical-note"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="musical-note" size={24} color={color} />
             ),
           }}
         />
@@ -47,12 +45,8 @@ const TabNav = () => {
           name="Playlists"
           options={{
             title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="musical-notes"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="musical-notes" size={24} color={color} />
             ),
           }}
         />
@@ -61,33 +55,25 @@ const TabNav = () => {
           name="Artists"
           options={{
             title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="person"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person" size={24} color={color} />
             ),
           }}
         />
 
         <Tabs.Screen
-          name="Favorites"
+          name="Settings"
           options={{
             title: "",
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="heart"
-                size={24}
-                color={focused ? colors.primary : colors.textMuted}
-              />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="settings-outline" size={24} color={color} />
             ),
           }}
         />
       </Tabs>
 
       <FloatingPlayer />
-    </>
+    </View>
   );
 };
 

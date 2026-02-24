@@ -1,45 +1,52 @@
-import { colors } from "@/constants/theme";
-import { storage, StorageKeys } from "@/helpers/storage";
-import { Appearance } from "react-native";
-import { create } from "zustand";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { storage } from '../utils/storage';
 
-type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = 'light' | 'dark' | 'system';
+export type BackgroundStyle = 'solid' | 'glass' | 'mesh';
+export type HapticLevel = 'none' | 'light' | 'medium' | 'heavy';
+export type FontSizeScale = 'small' | 'standard' | 'large';
 
 interface ThemeState {
     mode: ThemeMode;
-    setMode: (mode: ThemeMode) => void;
-    isDarkMode: boolean;
-    colors: typeof colors;
+    accentColor: string;
+    backgroundStyle: BackgroundStyle;
+    fontSizeScale: FontSizeScale;
+    cornerRadius: number;
+    glassIntensity: number;
+    hapticLevel: HapticLevel;
+
+    // Actions
+    updateTheme: (updates: Partial<Omit<ThemeState, 'updateTheme' | 'resetToDefaults'>>) => void;
+    resetToDefaults: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set, get) => {
-    const savedMode = (storage.getString(StorageKeys.THEME_MODE) as ThemeMode) || "system";
+const DEFAULT_THEME: Omit<ThemeState, 'updateTheme' | 'resetToDefaults'> = {
+    mode: 'dark',
+    accentColor: '#fc3c44', // Apollo Red
+    backgroundStyle: 'solid',
+    fontSizeScale: 'standard',
+    cornerRadius: 12,
+    glassIntensity: 0.5,
+    hapticLevel: 'medium',
+};
 
-    const getIsDarkMode = (mode: ThemeMode) => {
-        if (mode === "system") {
-            return Appearance.getColorScheme() === "dark";
+export const useThemeStore = create<ThemeState>()(
+    persist(
+        (set) => ({
+            ...DEFAULT_THEME,
+
+            updateTheme: (updates) => set((state) => ({ ...state, ...updates })),
+
+            resetToDefaults: () => set({ ...DEFAULT_THEME }),
+        }),
+        {
+            name: 'user-theme-config',
+            storage: createJSONStorage(() => ({
+                setItem: (name, value) => storage.set(name, value),
+                getItem: (name) => storage.getString(name) ?? null,
+                removeItem: (name) => (storage as any).delete(name),
+            })),
         }
-        return mode === "dark";
-    };
-
-    return {
-        mode: savedMode,
-        isDarkMode: getIsDarkMode(savedMode),
-        colors: colors, // We will update this to handle dynamic colors later
-        setMode: (mode: ThemeMode) => {
-            storage.set(StorageKeys.THEME_MODE, mode);
-            set({
-                mode,
-                isDarkMode: getIsDarkMode(mode),
-            });
-        },
-    };
-});
-
-// Listener for system theme changes if mode is 'system'
-Appearance.addChangeListener(({ colorScheme }) => {
-    const currentMode = useThemeStore.getState().mode;
-    if (currentMode === "system") {
-        useThemeStore.setState({ isDarkMode: colorScheme === "dark" });
-    }
-});
+    )
+);

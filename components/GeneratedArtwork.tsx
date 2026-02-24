@@ -1,11 +1,11 @@
-import { colors } from '@/constants/theme';
+import { useTheme } from '@/constants/theme';
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 interface Props {
     name: string;         // playlist name — first char is used as the letter
     size?: number;        // width/height of the square, default 60
-    style?: ViewStyle;
+    style?: StyleProp<ViewStyle>;
 }
 
 // Gradient colour pairs keyed by initial letter (A–Z + fallback)
@@ -31,13 +31,14 @@ function paletteFor(name: string): [string, string] {
  * Simulates a gradient by layering two coloured Views with opacity.
  */
 export const GeneratedArtwork: React.FC<Props> = ({ name, size = 60, style }) => {
+    const { colors, cornerRadius } = useTheme();
     const [colorA, colorB] = paletteFor(name);
     const initial = name.trim().charAt(0).toUpperCase() || '♪';
     const fontSize = size * 0.38;
     const noteSize = size * 0.18;
 
     return (
-        <View style={[styles.root, { width: size, height: size, borderRadius: size * 0.12, backgroundColor: colorA }, style]}>
+        <View style={[styles.root, { width: size, height: size, borderRadius: cornerRadius, backgroundColor: colorA }, style]}>
             {/* Simulated gradient overlay */}
             <View style={[styles.overlay, { backgroundColor: colorB }]} />
 
@@ -45,7 +46,7 @@ export const GeneratedArtwork: React.FC<Props> = ({ name, size = 60, style }) =>
             <Text style={[styles.note, { fontSize: noteSize, lineHeight: noteSize * 1.2 }]}>♪</Text>
 
             {/* Big initial letter (centred) */}
-            <Text style={[styles.initial, { fontSize, lineHeight: fontSize * 1.1 }]} numberOfLines={1}>
+            <Text style={[styles.initial, { color: colors.text, fontSize, lineHeight: fontSize * 1.1 }]} numberOfLines={1}>
                 {initial}
             </Text>
         </View>
@@ -70,7 +71,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     initial: {
-        color: colors.text,
         fontWeight: '800',
         textShadowColor: 'rgba(0,0,0,0.4)',
         textShadowOffset: { width: 0, height: 1 },

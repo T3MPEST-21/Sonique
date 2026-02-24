@@ -1,13 +1,16 @@
-import { colors, fonts, screenPadding } from '@/constants/theme';
+import { useTheme } from '@/constants/theme';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, PanResponder, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TrackPlayer, { useProgress } from 'react-native-track-player';
+import TrackPlayer, { useActiveTrack, useProgress } from 'react-native-track-player';
 
-// Simple seek bar that works without Reanimated
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Simple seek bar with premium look
 const SeekBar = ({
     position,
     duration,
@@ -17,10 +20,9 @@ const SeekBar = ({
     duration: number;
     onSeek: (val: number) => void;
 }) => {
+    const { colors } = useTheme();
     const trackRef = useRef<View>(null);
-    // pageX is the absolute screen position of the left edge of the track
     const layoutRef = useRef({ pageX: 0, width: 1 });
-    // Keep mutable refs for the closure — panResponder is created once and cannot use stale props
     const durationRef = useRef(duration);
     const onSeekRef = useRef(onSeek);
     durationRef.current = duration;
@@ -29,7 +31,6 @@ const SeekBar = ({
     const [isDragging, setIsDragging] = useState(false);
     const [dragRatio, setDragRatio] = useState(0);
 
-    // Use pageX (absolute) so it doesn't matter which child view captures the touch
     const getRatioFromPageX = (pageX: number) => {
         const { pageX: trackX, width } = layoutRef.current;
         const w = width > 0 ? width : 1;
@@ -50,7 +51,6 @@ const SeekBar = ({
             onPanResponderRelease: (e) => {
                 const ratio = getRatioFromPageX(e.nativeEvent.pageX);
                 setIsDragging(false);
-                // Use ref so we always have the latest duration, not the frozen initial value
                 onSeekRef.current(ratio * durationRef.current);
             },
         })
@@ -62,7 +62,6 @@ const SeekBar = ({
         <View
             ref={trackRef}
             onLayout={() => {
-                // Measure absolute screen position after layout so pageX math works correctly
                 trackRef.current?.measure((_fx, _fy, width, _height, pageX, _pageY) => {
                     layoutRef.current = { pageX, width };
                 });
@@ -70,110 +69,173 @@ const SeekBar = ({
             style={seekBarStyles.track}
             {...panResponder.panHandlers}
         >
-            <View style={[seekBarStyles.fill, { width: `${displayRatio * 100}%` }]} />
-            <View style={[seekBarStyles.thumb, { left: `${displayRatio * 100}%` as any }]} />
+            <View style={[seekBarStyles.bg, { backgroundColor: colors.backgroundLight }]} />
+            <View style={[seekBarStyles.fill, { backgroundColor: colors.primary, width: `${displayRatio * 100}%` }]} />
+            <View style={[seekBarStyles.thumb, { backgroundColor: colors.text, left: `${displayRatio * 100}%` as any }]} />
         </View>
     );
 };
 
 const seekBarStyles = StyleSheet.create({
     track: {
-        height: 20,
+        height: 30,
         justifyContent: 'center',
         position: 'relative',
+        width: '100%',
+    },
+    bg: {
+        position: 'absolute',
+        height: 3,
+        width: '100%',
+        borderRadius: 2,
+        opacity: 0.3,
     },
     fill: {
-        height: 4,
-        backgroundColor: colors.primary,
+        height: 3,
         borderRadius: 2,
     },
     thumb: {
         position: 'absolute',
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        backgroundColor: colors.text,
-        top: 3,
-        marginLeft: -7,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        top: 9,
+        marginLeft: -6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 2,
     },
 });
 
 const PlayerScreen = () => {
-    const { activeTrack, isPlaying, play, pause, resume, next, previous, toggleShuffle, toggleRepeat, repeatMode, isShuffleOn } = usePlayerStore();
+    const { isPlaying, pause, resume, next, previous, toggleShuffle, toggleRepeat, repeatMode, isShuffleOn } = usePlayerStore();
+    const activeTrack = useActiveTrack();
     const insets = useSafeAreaInsets();
+    const { colors, fonts, cornerRadius, spacing, isDark } = useTheme();
     const { position, duration } = useProgress();
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs} `;
     };
 
     const togglePlayback = () => {
         isPlaying ? pause() : resume();
     };
 
+    const handleClose = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/(tabs)/(songs)');
+        }
+    };
+
     if (!activeTrack) {
         return (
-            <View style={[styles.container, styles.centered]}>
+            <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
                 <Text style={{ color: colors.text }}>No track playing</Text>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="chevron-down" size={28} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Now Playing</Text>
-                <View style={{ width: 28 }} />
-            </View>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Immersive Background */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary, opacity: 0.05 }]} />
 
-            <View style={styles.artworkContainer}>
-                <View style={styles.artwork}>
-                    <Ionicons name="musical-note" size={120} color={colors.textMuted} />
+            <View style={[styles.content, { paddingTop: insets.top, paddingHorizontal: spacing.horizontal }]}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={handleClose} style={styles.headerBtn}>
+                        <Ionicons name="chevron-down" size={32} color={colors.text} />
+                    </TouchableOpacity>
+                    <View style={styles.headerInfo}>
+                        <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>NOW PLAYING</Text>
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>SONIQUE</Text>
+                    </View>
+                    <TouchableOpacity style={styles.headerBtn}>
+                        <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
+                    </TouchableOpacity>
                 </View>
-            </View>
 
-            <View style={styles.infoContainer}>
-                <Text style={styles.title} numberOfLines={1}>{activeTrack.title}</Text>
-                <Text style={styles.artist} numberOfLines={1}>{activeTrack.artist}</Text>
-            </View>
-
-            <View style={styles.progressContainer}>
-                <SeekBar
-                    position={position}
-                    duration={duration}
-                    onSeek={(val) => TrackPlayer.seekTo(val)}
-                />
-                <View style={styles.timeContainer}>
-                    <Text style={styles.timeText}>{formatTime(position)}</Text>
-                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                {/* Artwork Area */}
+                <View style={styles.artworkArea}>
+                    <View style={[styles.artworkGlow, { backgroundColor: colors.primary }]} />
+                    <View style={[styles.artworkCard, { backgroundColor: colors.card, borderRadius: 24 }]}>
+                        <BlurView intensity={isDark ? 20 : 10} style={StyleSheet.absoluteFill} />
+                        <Ionicons name="musical-note" size={140} color={colors.primary} style={{ opacity: 0.8 }} />
+                    </View>
                 </View>
-            </View>
 
-            <View style={styles.controlsContainer}>
-                <TouchableOpacity onPress={toggleShuffle}>
-                    <Ionicons name="shuffle" size={24} color={isShuffleOn ? colors.primary : colors.textMuted} />
-                </TouchableOpacity>
+                {/* Info */}
+                <View style={styles.infoArea}>
+                    <View style={styles.titleRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.title, { color: colors.text, fontSize: 26 }]} numberOfLines={1}>
+                                {activeTrack.title}
+                            </Text>
+                            <Text style={[styles.artist, { color: colors.textMuted, fontSize: 16 }]} numberOfLines={1}>
+                                {activeTrack.artist || 'Unknown Artist'}
+                            </Text>
+                        </View>
+                        <TouchableOpacity hitSlop={15}>
+                            <Ionicons name="heart-outline" size={28} color={colors.textMuted} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-                <TouchableOpacity onPress={previous}>
-                    <Ionicons name="play-skip-back" size={32} color={colors.text} />
-                </TouchableOpacity>
+                {/* Progress */}
+                <View style={styles.progressArea}>
+                    <SeekBar
+                        position={position}
+                        duration={duration}
+                        onSeek={(val) => TrackPlayer.seekTo(val)}
+                    />
+                    <View style={styles.timeRow}>
+                        <Text style={[styles.timeText, { color: colors.textMuted }]}>{formatTime(position)}</Text>
+                        <Text style={[styles.timeText, { color: colors.textMuted }]}>{formatTime(duration)}</Text>
+                    </View>
+                </View>
 
-                <TouchableOpacity onPress={togglePlayback} style={styles.playButton}>
-                    <Ionicons name={isPlaying ? "pause" : "play"} size={32} color={colors.text} />
-                </TouchableOpacity>
+                {/* Primary Controls */}
+                <View style={styles.controlsArea}>
+                    <TouchableOpacity onPress={toggleShuffle} style={styles.secondaryBtn}>
+                        <Ionicons name="shuffle" size={22} color={isShuffleOn ? colors.primary : colors.textMuted} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity onPress={next}>
-                    <Ionicons name="play-skip-forward" size={32} color={colors.text} />
-                </TouchableOpacity>
+                    <TouchableOpacity onPress={previous} style={styles.primaryBtn}>
+                        <Ionicons name="play-skip-back" size={34} color={colors.text} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity onPress={toggleRepeat}>
-                    <Ionicons name="repeat" size={24} color={repeatMode !== 0 ? colors.primary : colors.textMuted} />
-                </TouchableOpacity>
+                    <TouchableOpacity onPress={togglePlayback} style={[styles.playBtn, { backgroundColor: colors.text }]}>
+                        <Ionicons name={isPlaying ? "pause" : "play"} size={40} color={colors.background} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={next} style={styles.primaryBtn}>
+                        <Ionicons name="play-skip-forward" size={34} color={colors.text} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={toggleRepeat} style={styles.secondaryBtn}>
+                        <Ionicons name={repeatMode === 2 ? "repeat-outline" : "repeat"} size={22} color={repeatMode !== 0 ? colors.primary : colors.textMuted} />
+                        {repeatMode === 2 && <View style={[styles.repeatOneDot, { backgroundColor: colors.primary }]} />}
+                    </TouchableOpacity>
+                </View>
+
+                {/* Bottom Options */}
+                <View style={[styles.bottomOptions, { marginBottom: Math.max(insets.bottom, 20) }]}>
+                    <TouchableOpacity style={styles.optionBtn}>
+                        <Ionicons name="share-outline" size={20} color={colors.textMuted} />
+                        <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Share</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.optionBtn}>
+                        <Ionicons name="list" size={20} color={colors.textMuted} />
+                        <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Up Next</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -184,8 +246,10 @@ export default PlayerScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
-        paddingHorizontal: screenPadding.horizontal,
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'space-between',
     },
     centered: {
         justifyContent: 'center',
@@ -195,83 +259,137 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 10,
-        marginBottom: 20,
+        height: 60,
+    },
+    headerBtn: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerInfo: {
+        alignItems: 'center',
+    },
+    headerSubtitle: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginBottom: 2,
     },
     headerTitle: {
-        color: colors.text,
-        fontSize: fonts.sm,
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
-    dragHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: colors.textMuted,
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginTop: 10,
-        opacity: 0.5,
-    },
-    artworkContainer: {
-        flex: 1,
+    artworkArea: {
+        flex: 1.2,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    artworkCard: {
+        width: SCREEN_WIDTH * 0.8,
+        height: SCREEN_WIDTH * 0.8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+    },
+    artworkGlow: {
+        position: 'absolute',
+        width: SCREEN_WIDTH * 0.6,
+        height: SCREEN_WIDTH * 0.6,
+        borderRadius: SCREEN_WIDTH * 0.3,
+        opacity: 0.2,
+        transform: [{ scale: 1.5 }],
+        filter: 'blur(60px)',
+    },
+    infoArea: {
         marginVertical: 20,
     },
-    artwork: {
-        width: 280,
-        height: 280,
-        borderRadius: 20,
-        backgroundColor: colors.backgroundLight,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-    },
-    infoContainer: {
-        marginBottom: 32,
+    titleRow: {
+        flexDirection: 'row',
         alignItems: 'center',
     },
     title: {
-        fontSize: fonts.lg,
-        fontWeight: 'bold',
-        color: colors.text,
-        marginBottom: 8,
-        textAlign: 'center',
+        fontWeight: '900',
+        letterSpacing: -0.5,
     },
     artist: {
-        fontSize: fonts.md,
-        color: colors.textMuted,
-        textAlign: 'center',
+        fontWeight: '500',
+        marginTop: 4,
+        opacity: 0.7,
     },
-    progressContainer: {
-        marginBottom: 40,
+    progressArea: {
+        marginBottom: 30,
     },
-    timeContainer: {
+    timeRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 8,
+        marginTop: 10,
     },
     timeText: {
-        color: colors.textMuted,
-        fontSize: fonts.xs,
+        fontSize: 12,
+        fontWeight: '600',
         fontVariant: ['tabular-nums'],
     },
-    controlsContainer: {
+    controlsArea: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 48,
+        marginBottom: 40,
     },
-    playButton: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        backgroundColor: colors.primary,
+    playBtn: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         justifyContent: 'center',
         alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    primaryBtn: {
+        width: 60,
+        height: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    secondaryBtn: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    repeatOneDot: {
+        position: 'absolute',
+        bottom: 10,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+    },
+    bottomOptions: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.05)',
+    },
+    optionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    optionLabel: {
+        fontSize: 12,
+        fontWeight: '700',
     },
 });

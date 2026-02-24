@@ -1,7 +1,7 @@
 import { GeneratedArtwork } from '@/components/GeneratedArtwork';
-import { PlaylistPickerModal } from '@/components/PlaylistPickerModal';
 import { SongList } from '@/components/SongList';
-import { colors, fonts, screenPadding } from '@/constants/theme';
+import { SongPickerModal } from '@/components/SongPickerModal';
+import { useTheme } from '@/constants/theme';
 import { SortBy, useLibraryStore } from '@/stores/libraryStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,10 +24,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function PlaylistDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const insets = useSafeAreaInsets();
+    const { colors, fonts, cornerRadius, spacing, isDark } = useTheme();
     const {
         playlists, getPlaylistTracks, tracks,
         renamePlaylist, deletePlaylist, setPlaylistArtwork,
         removeTrackFromPlaylist, reorderPlaylistTracks, sortPlaylist,
+        addTracksToPlaylist,
     } = useLibraryStore();
     const { play } = usePlayerStore();
 
@@ -40,6 +42,30 @@ export default function PlaylistDetailScreen() {
     const [newName, setNewName] = useState('');
     const [showSongPicker, setShowSongPicker] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isSearchActive, setIsSearchActive] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const playlistTracks = getPlaylistTracks(playlist?.id || '');
+    const totalDuration = playlistTracks.reduce((sum, t) => sum + (t.duration || 0), 0);
+    const durationStr = totalDuration > 0
+        ? `${Math.floor(totalDuration / 60)} min`
+        : '0 min';
+    const filteredTracks = React.useMemo(() => {
+        if (!searchQuery.trim()) return playlistTracks;
+        const query = searchQuery.toLowerCase();
+        return playlistTracks.filter(t =>
+            t.title.toLowerCase().includes(query) ||
+            t.artist.toLowerCase().includes(query)
+        );
+    }, [playlistTracks, searchQuery]);
+
+    const handleBack = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/(tabs)/Playlists');
+        }
+    };
 
     // Hold-to-accelerate refs
     const holdInterval = useRef<NodeJS.Timeout | null>(null);
@@ -47,31 +73,51 @@ export default function PlaylistDetailScreen() {
 
     const clearHold = () => {
         if (holdInterval.current) {
-            clearInterval(holdInterval.current);
+            clearTimeout(holdInterval.current);
             holdInterval.current = null;
         }
     };
 
-    const startHold = (action: () => void) => {
-        holdStart.current = Date.now();
-        action(); // immediate first step
-        holdInterval.current = setInterval(() => {
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        if (!id) return;
+        const playlistTracks = getPlaylistTracks(id);
+        if (direction === 'up' && index > 0) {
+            reorderPlaylistTracks(id, index, index - 1);
+        } else if (direction === 'down' && index < playlistTracks.length - 1) {
+            reorderPlaylistTracks(id, index, index + 1);
+        }
+    };
+
+    const handleMoveStart = (index: number, direction: 'up' | 'down') => {
+        clearHold();
+
+        let currentIndex = index;
+        const action = () => {
+            const playlistTracks = getPlaylistTracks(id!);
+            if (direction === 'up' && currentIndex > 0) {
+                reorderPlaylistTracks(id!, currentIndex, currentIndex - 1);
+                currentIndex--;
+                return true;
+            } else if (direction === 'down' && currentIndex < playlistTracks.length - 1) {
+                reorderPlaylistTracks(id!, currentIndex, currentIndex + 1);
+                currentIndex++;
+                return true;
+            }
+            return false;
+        };
+
+        const moveStep = () => {
+            if (!action()) {
+                clearHold();
+                return;
+            }
             const elapsed = Date.now() - holdStart.current;
-            const interval = elapsed > 600 ? 80 : 300;
-            // Re-schedule at the new speed every 80ms check
-            action();
-        }, 80); // fire every 80ms but only count as step when threshold passes
-    };
+            const nextDelay = elapsed > 800 ? 80 : 250;
+            holdInterval.current = setTimeout(moveStep, nextDelay) as any;
+        };
 
-    const handleMoveUp = (index: number) => {
-        if (index === 0 || !id) return;
-        reorderPlaylistTracks(id, index, index - 1);
-    };
-
-    const handleMoveDown = (index: number) => {
-        const playlistTracks = getPlaylistTracks(id!);
-        if (index >= playlistTracks.length - 1 || !id) return;
-        reorderPlaylistTracks(id, index, index + 1);
+        holdStart.current = Date.now();
+        moveStep(); // first step and start the chain
     };
 
     const handlePickArtwork = async () => {
@@ -115,66 +161,94 @@ export default function PlaylistDetailScreen() {
 
     if (!playlist) {
         return (
-            <View style={[styles.container, styles.centered]}>
+            <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
                 <Text style={{ color: colors.text }}>Playlist not found</Text>
             </View>
         );
     }
 
-    const playlistTracks = getPlaylistTracks(playlist.id);
-    const totalDuration = playlistTracks.reduce((sum, t) => sum + (t.duration || 0), 0);
-    const durationStr = totalDuration > 0
-        ? `${Math.floor(totalDuration / 60)} min`
-        : '0 min';
-
     // For song picker: show all tracks NOT already in playlist
     const pickerTracks = tracks.filter(t => !playlist.trackIds.includes(t.id));
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="chevron-back" size={24} color={colors.text} />
-                </TouchableOpacity>
-
-                {reorderMode ? (
-                    <>
-                        <Text style={styles.headerTitle}>Reorder</Text>
-                        <TouchableOpacity onPress={() => setReorderMode(false)} style={styles.doneBtn}>
-                            <Text style={styles.doneBtnText}>Done</Text>
+            <View style={[styles.header, { paddingHorizontal: spacing.horizontal }]}>
+                {isSearchActive ? (
+                    <View style={styles.searchContainer}>
+                        <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }} style={styles.backBtn}>
+                            <Ionicons name="arrow-back" size={24} color={colors.text} />
                         </TouchableOpacity>
-                    </>
+                        <TextInput
+                            style={[styles.searchInput, { color: colors.text, fontSize: fonts.md }]}
+                            placeholder="Search songs in playlist..."
+                            placeholderTextColor={colors.textMuted}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
+                                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 ) : (
                     <>
-                        <Text style={styles.headerTitle} numberOfLines={1}>{playlist.name}</Text>
-                        <TouchableOpacity onPress={() => setShowMenu(v => !v)}>
-                            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+                        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+                            <Ionicons name="chevron-back" size={24} color={colors.text} />
                         </TouchableOpacity>
+
+                        // Hold-to-accelerate refs
+
+                        {reorderMode ? (
+                            <>
+                                <Text style={[styles.headerTitle, { color: colors.text, fontSize: fonts.md }]}>Reorder</Text>
+                                <TouchableOpacity onPress={() => setReorderMode(false)} style={[styles.doneBtn, { backgroundColor: colors.primary }]}>
+                                    <Text style={[styles.doneBtnText, { fontSize: fonts.xs }]}>Done</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <Text style={[styles.headerTitle, { color: colors.text, fontSize: fonts.md }]} numberOfLines={1}>{playlist.name}</Text>
+                                <View style={styles.headerActions}>
+                                    <TouchableOpacity onPress={() => setIsSearchActive(true)} style={styles.menuBtn}>
+                                        <Ionicons name="search" size={20} color={colors.text} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => setShowMenu(v => !v)}>
+                                        <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
                     </>
                 )}
             </View>
 
             {/* ⋮ Dropdown menu */}
             {showMenu && (
-                <View style={styles.dropMenu}>
+                <View style={[styles.dropMenu, {
+                    backgroundColor: isDark ? '#2a2a2a' : colors.card,
+                    borderRadius: cornerRadius,
+                    right: spacing.horizontal
+                }]}>
                     <TouchableOpacity style={styles.dropItem} onPress={() => { setShowMenu(false); setShowRename(true); setNewName(playlist.name); }}>
                         <Ionicons name="pencil-outline" size={17} color={colors.text} />
-                        <Text style={styles.dropLabel}>Rename</Text>
+                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Rename</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.dropItem} onPress={handlePickArtwork}>
                         <Ionicons name="image-outline" size={17} color={colors.text} />
-                        <Text style={styles.dropLabel}>Change Artwork</Text>
+                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Change Artwork</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.dropItem} onPress={() => setShowSortMenu(v => !v)}>
                         <Ionicons name="swap-vertical" size={17} color={colors.text} />
-                        <Text style={styles.dropLabel}>Sort...</Text>
+                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Sort...</Text>
                     </TouchableOpacity>
                     {showSortMenu && (
                         <>
                             {(['title', 'artist', 'duration', 'dateAdded'] as SortBy[]).map(s => (
                                 <TouchableOpacity key={s} style={[styles.dropItem, styles.subItem]} onPress={() => handleSort(s)}>
-                                    <Text style={styles.subLabel}>
+                                    <Text style={[styles.subLabel, { color: colors.textMuted, fontSize: fonts.xs }]}>
                                         {s === 'title' ? 'By Title' : s === 'artist' ? 'By Artist' : s === 'duration' ? 'By Duration' : 'By Date Added'}
                                     </Text>
                                 </TouchableOpacity>
@@ -183,39 +257,39 @@ export default function PlaylistDetailScreen() {
                     )}
                     <TouchableOpacity style={styles.dropItem} onPress={() => { setShowMenu(false); setReorderMode(true); }}>
                         <Ionicons name="reorder-three" size={17} color={colors.text} />
-                        <Text style={styles.dropLabel}>Reorder Songs...</Text>
+                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Reorder Songs...</Text>
                     </TouchableOpacity>
                     {!playlist.isPinned && (
                         <TouchableOpacity style={styles.dropItem} onPress={handleDelete}>
-                            <Ionicons name="trash-outline" size={17} color="#e74c3c" />
-                            <Text style={[styles.dropLabel, { color: '#e74c3c' }]}>Delete Playlist</Text>
+                            <Ionicons name="trash-outline" size={17} color={isDark ? "#e74c3c" : "#d32f2f"} />
+                            <Text style={[styles.dropLabel, { color: isDark ? "#e74c3c" : "#d32f2f", fontSize: fonts.sm }]}>Delete Playlist</Text>
                         </TouchableOpacity>
                     )}
                 </View>
             )}
 
             {/* Playlist info */}
-            <View style={styles.info}>
+            <View style={[styles.info, { paddingHorizontal: spacing.horizontal }]}>
                 <TouchableOpacity onPress={handlePickArtwork}>
                     {playlist.artworkUri ? (
-                        <Image source={{ uri: playlist.artworkUri }} style={styles.artwork} />
+                        <Image source={{ uri: playlist.artworkUri }} style={[styles.artwork, { borderRadius: cornerRadius + 2 }]} />
                     ) : (
-                        <GeneratedArtwork name={playlist.name} size={120} style={styles.artwork} />
+                        <GeneratedArtwork name={playlist.name} size={120} style={[styles.artwork, { borderRadius: cornerRadius + 2 }]} />
                     )}
                     <View style={styles.artworkOverlay}>
                         <Ionicons name="camera-outline" size={18} color="rgba(255,255,255,0.8)" />
                     </View>
                 </TouchableOpacity>
                 <View style={styles.infoText}>
-                    <Text style={styles.playlistName} numberOfLines={2}>{playlist.name}</Text>
-                    <Text style={styles.playlistMeta}>{playlistTracks.length} songs · {durationStr}</Text>
+                    <Text style={[styles.playlistName, { color: colors.text, fontSize: fonts.md }]} numberOfLines={2}>{playlist.name}</Text>
+                    <Text style={[styles.playlistMeta, { color: colors.textMuted, fontSize: fonts.xs }]}>{playlistTracks.length} songs · {durationStr}</Text>
                     {playlistTracks.length > 0 && (
                         <TouchableOpacity
-                            style={styles.playBtn}
+                            style={[styles.playBtn, { backgroundColor: colors.primary }]}
                             onPress={() => playlistTracks.length > 0 && play(playlistTracks[0], playlistTracks)}
                         >
                             <Ionicons name="play" size={16} color="#fff" />
-                            <Text style={styles.playBtnText}>Play All</Text>
+                            <Text style={[styles.playBtnText, { fontSize: fonts.xs }]}>Play All</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -223,15 +297,19 @@ export default function PlaylistDetailScreen() {
 
             {/* Song list */}
             <SongList
-                tracks={playlistTracks}
+                tracks={filteredTracks}
                 reorderMode={reorderMode}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
+                onMoveStart={handleMoveStart}
+                onMoveEnd={clearHold}
+                onRemove={(track) => id && removeTrackFromPlaylist(id, track.id)}
             />
 
             {/* Add Songs FAB */}
             {!reorderMode && (
-                <TouchableOpacity style={styles.fab} onPress={() => setShowSongPicker(true)}>
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
+                    onPress={() => setShowSongPicker(true)}
+                >
                     <Ionicons name="add" size={26} color="#fff" />
                 </TouchableOpacity>
             )}
@@ -239,10 +317,9 @@ export default function PlaylistDetailScreen() {
             {/* Rename modal */}
             <Modal transparent visible={showRename} animationType="fade" onRequestClose={() => setShowRename(false)}>
                 <Pressable style={styles.modalBackdrop} onPress={() => setShowRename(false)}>
-                    <Pressable style={styles.renameModal} onPress={() => { }}>
-                        <Text style={styles.renameTitle}>Rename Playlist</Text>
+                    <Pressable style={[styles.renameModal, { backgroundColor: !isDark ? colors.backgroundLight : '#1e1e1e', borderRadius: cornerRadius + 6 }]} onPress={() => { }}>
+                        <Text style={[styles.renameTitle, { color: colors.text, fontSize: fonts.md }]}>Rename Playlist</Text>
                         <TextInput
-                            style={styles.renameInput}
                             value={newName}
                             onChangeText={setNewName}
                             autoFocus
@@ -250,27 +327,32 @@ export default function PlaylistDetailScreen() {
                             returnKeyType="done"
                             placeholderTextColor={colors.textMuted}
                             selectionColor={colors.primary}
-                            style={[styles.renameInput, { color: colors.text }]}
+                            style={[styles.renameInput, {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+                                color: colors.text,
+                                fontSize: fonts.sm
+                            }]}
                         />
                         <View style={styles.renameActions}>
                             <TouchableOpacity onPress={() => setShowRename(false)} style={styles.renameCancel}>
-                                <Text style={{ color: colors.textMuted }}>Cancel</Text>
+                                <Text style={{ color: colors.textMuted, fontSize: fonts.sm }}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={handleRename} style={styles.renameConfirm}>
-                                <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
+                            <TouchableOpacity onPress={handleRename} style={[styles.renameConfirm, { backgroundColor: colors.primary }]}>
+                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: fonts.sm }}>Save</Text>
                             </TouchableOpacity>
                         </View>
                     </Pressable>
                 </Pressable>
             </Modal>
 
-            {/* Song picker bottom sheet */}
+            {/* Song picker modal */}
             {showSongPicker && (
-                <PlaylistPickerModal
+                <SongPickerModal
                     visible={showSongPicker}
-                    trackIds={Array.from(selectedIds)}
-                    onClose={() => { setShowSongPicker(false); setSelectedIds(new Set()); }}
-                    onDone={() => setSelectedIds(new Set())}
+                    onClose={() => setShowSongPicker(false)}
+                    onAdd={(trackIds) => {
+                        if (id) addTracksToPlaylist(id, trackIds);
+                    }}
                 />
             )}
         </View>
@@ -278,24 +360,41 @@ export default function PlaylistDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+    container: { flex: 1 },
     centered: { justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
         paddingVertical: 12,
     },
     backBtn: { marginRight: 8, padding: 4 },
-    headerTitle: { flex: 1, color: colors.text, fontSize: fonts.md, fontWeight: '700' },
-    doneBtn: { backgroundColor: colors.primary, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 6 },
-    doneBtnText: { color: '#fff', fontWeight: '700', fontSize: fonts.xs },
+    headerTitle: { flex: 1, fontWeight: '700' },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    searchContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 48,
+        gap: 8,
+    },
+    searchInput: {
+        flex: 1,
+        height: '100%',
+        fontWeight: '500',
+    },
+    clearBtn: {
+        padding: 4,
+    },
+    menuBtn: { padding: 4 },
+    doneBtn: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 6 },
+    doneBtnText: { color: '#fff', fontWeight: '700' },
     dropMenu: {
         position: 'absolute',
         top: 60,
-        right: 16,
-        backgroundColor: '#2a2a2a',
-        borderRadius: 12,
         paddingVertical: 6,
         minWidth: 200,
         elevation: 12,
@@ -306,17 +405,16 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     dropItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-    dropLabel: { color: colors.text, fontSize: fonts.sm },
+    dropLabel: {},
     subItem: { paddingLeft: 44, paddingVertical: 8 },
-    subLabel: { color: colors.textMuted, fontSize: fonts.xs },
+    subLabel: {},
     info: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: screenPadding.horizontal,
         paddingVertical: 16,
         gap: 16,
     },
-    artwork: { width: 120, height: 120, borderRadius: 14 },
+    artwork: { width: 120, height: 120 },
     artworkOverlay: {
         position: 'absolute',
         bottom: 6,
@@ -326,20 +424,19 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     infoText: { flex: 1 },
-    playlistName: { color: colors.text, fontSize: fonts.md, fontWeight: '800', marginBottom: 4 },
-    playlistMeta: { color: colors.textMuted, fontSize: fonts.xs },
+    playlistName: { fontWeight: '800', marginBottom: 4 },
+    playlistMeta: {},
     playBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
         marginTop: 12,
-        backgroundColor: colors.primary,
         alignSelf: 'flex-start',
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 8,
     },
-    playBtnText: { color: '#fff', fontWeight: '700', fontSize: fonts.xs },
+    playBtnText: { color: '#fff', fontWeight: '700' },
     fab: {
         position: 'absolute',
         bottom: 90,
@@ -347,26 +444,22 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: 26,
-        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 8,
-        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.5,
         shadowRadius: 8,
     },
     modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-    renameModal: { backgroundColor: '#1e1e1e', borderRadius: 18, padding: 24, width: '85%' },
-    renameTitle: { color: colors.text, fontSize: fonts.md, fontWeight: '700', marginBottom: 14 },
+    renameModal: { padding: 24, width: '85%' },
+    renameTitle: { fontWeight: '700', marginBottom: 14 },
     renameInput: {
-        backgroundColor: 'rgba(255,255,255,0.07)',
         borderRadius: 10,
         padding: 14,
-        fontSize: fonts.sm,
         marginBottom: 16,
     },
     renameActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
     renameCancel: { paddingHorizontal: 16, paddingVertical: 10 },
-    renameConfirm: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+    renameConfirm: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
 });

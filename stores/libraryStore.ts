@@ -1,6 +1,7 @@
 import { storage, StorageKeys } from "@/utils/storage";
 import * as MediaLibrary from "expo-media-library";
 import { create } from "zustand";
+import { useToastStore } from "./toastStore";
 
 // ─── Track ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ export interface Track {
     artwork?: string;
     duration: number; // seconds
     id: string;
+    dateAdded: number; // modification time
 }
 
 // ─── Playlist ─────────────────────────────────────────────────────────────────
@@ -153,6 +155,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
                             duration: asset.duration,
                             album: "Unknown Album",
                             artwork: undefined,
+                            dateAdded: asset.modificationTime || Date.now(),
                         };
                     });
 
@@ -204,6 +207,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
                 persistPlaylists(updated);
                 return { playlists: updated };
             });
+            useToastStore.getState().showToast(`Playlist "${name}" created`, 'success');
             return playlist;
         },
 
@@ -214,6 +218,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
                 persistPlaylists(updated);
                 return { playlists: updated };
             });
+            useToastStore.getState().showToast('Playlist deleted', 'info');
         },
 
         renamePlaylist: (id, newName) => {
@@ -224,6 +229,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
                 persistPlaylists(updated);
                 return { playlists: updated };
             });
+            useToastStore.getState().showToast('Playlist renamed', 'success');
         },
 
         setPlaylistArtwork: (id, uri) => {
@@ -245,6 +251,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
                     // Deduplicate
                     const existingIds = new Set(p.trackIds);
                     const newIds = trackIds.filter(id => !existingIds.has(id));
+
+                    if (newIds.length > 0) {
+                        useToastStore.getState().showToast(`Added ${newIds.length} song${newIds.length > 1 ? 's' : ''}`, 'success');
+                    } else if (trackIds.length > 0) {
+                        useToastStore.getState().showToast('Already in playlist', 'info');
+                    }
+
                     return { ...p, trackIds: [...p.trackIds, ...newIds] };
                 });
                 persistPlaylists(updated);
@@ -312,8 +325,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
 
             if (fav.trackIds.includes(trackId)) {
                 get().removeTrackFromPlaylist(FAVORITES_ID, trackId);
+                useToastStore.getState().showToast('Removed from Favorites', 'info');
             } else {
                 get().addTracksToPlaylist(FAVORITES_ID, [trackId]);
+                useToastStore.getState().showToast('Added to Favorites', 'success');
             }
         },
 

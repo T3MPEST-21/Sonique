@@ -1,12 +1,13 @@
 import { PlaylistPickerModal } from '@/components/PlaylistPickerModal';
 import { SongContextMenu } from '@/components/SongContextMenu';
-import { colors, fonts } from '@/constants/theme';
+import { useTheme } from '@/constants/theme';
 import { Track } from '@/stores/libraryStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     FlatList,
+    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -21,10 +22,9 @@ interface SongListProps {
     onSelectionChange?: (ids: Set<string>) => void;
     /** Reorder mode — shows ↑↓ arrows instead of ⋮ */
     reorderMode?: boolean;
-    onMoveUp?: (index: number) => void;
-    onMoveDown?: (index: number) => void;
-    onMoveHoldUp?: (index: number) => void;
-    onMoveHoldDown?: (index: number) => void;
+    onMoveStart?: (index: number, direction: 'up' | 'down') => void;
+    onMoveEnd?: () => void;
+    onRemove?: (track: Track) => void;
 }
 
 const SongItem = ({
@@ -36,8 +36,8 @@ const SongItem = ({
     isSelected,
     onToggleSelect,
     reorderMode,
-    onMoveUp,
-    onMoveDown,
+    onMoveStart,
+    onMoveEnd,
     onMenuPress,
 }: {
     track: Track;
@@ -48,57 +48,68 @@ const SongItem = ({
     isSelected?: boolean;
     onToggleSelect?: () => void;
     reorderMode?: boolean;
-    onMoveUp?: () => void;
-    onMoveDown?: () => void;
+    onMoveStart?: (direction: 'up' | 'down') => void;
+    onMoveEnd?: () => void;
     onMenuPress: () => void;
-}) => (
-    <TouchableOpacity
-        style={styles.itemContainer}
-        onPress={selectionMode ? onToggleSelect : onSelect}
-        activeOpacity={0.7}
-    >
-        {/* Left: checkbox OR reorder arrows OR artwork placeholder */}
-        {selectionMode ? (
-            <TouchableOpacity style={styles.checkbox} onPress={onToggleSelect}>
-                <Ionicons
-                    name={isSelected ? 'checkbox' : 'square-outline'}
-                    size={22}
-                    color={isSelected ? colors.primary : colors.textMuted}
-                />
-            </TouchableOpacity>
-        ) : reorderMode ? (
-            <View style={styles.reorderButtons}>
-                <TouchableOpacity onPress={onMoveUp} style={styles.arrowBtn}>
-                    <Ionicons name="chevron-up" size={18} color={colors.textMuted} />
+}) => {
+    const { colors, fonts, cornerRadius } = useTheme();
+    return (
+        <TouchableOpacity
+            style={[styles.itemContainer, isPlaying && { backgroundColor: colors.primary + '15' }]}
+            onPress={selectionMode ? onToggleSelect : onSelect}
+            activeOpacity={0.7}
+        >
+            {/* Left: checkbox OR reorder arrows OR artwork placeholder */}
+            {selectionMode ? (
+                <TouchableOpacity style={styles.checkbox} onPress={onToggleSelect}>
+                    <Ionicons
+                        name={isSelected ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color={isSelected ? colors.primary : colors.textMuted}
+                    />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={onMoveDown} style={styles.arrowBtn}>
-                    <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+            ) : reorderMode ? (
+                <View style={styles.reorderButtons}>
+                    <Pressable
+                        onPressIn={() => onMoveStart?.('up')}
+                        onPressOut={onMoveEnd}
+                        style={({ pressed }) => [styles.arrowBtn, pressed && { opacity: 0.5 }]}
+                    >
+                        <Ionicons name="chevron-up" size={18} color={colors.textMuted} />
+                    </Pressable>
+                    <Pressable
+                        onPressIn={() => onMoveStart?.('down')}
+                        onPressOut={onMoveEnd}
+                        style={({ pressed }) => [styles.arrowBtn, pressed && { opacity: 0.5 }]}
+                    >
+                        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+                    </Pressable>
+                </View>
+            ) : (
+                <View style={[styles.artworkPlaceholder, { borderRadius: cornerRadius * 0.7, backgroundColor: colors.backgroundLight }]}>
+                    <Ionicons name="musical-notes" size={22} color={colors.textMuted} />
+                </View>
+            )}
+
+            {/* Track text */}
+            <View style={styles.textContainer}>
+                <Text numberOfLines={1} style={[styles.title, { color: isPlaying ? colors.primary : colors.text, fontSize: fonts.sm }]}>
+                    {track.title || 'Unknown Title'}
+                </Text>
+                <Text numberOfLines={1} style={[styles.artist, { color: colors.textMuted, fontSize: fonts.xs }]}>
+                    {track.artist || 'Unknown Artist'}
+                </Text>
+            </View>
+
+            {/* Right: ⋮ menu (hidden in selection/reorder mode) */}
+            {!selectionMode && !reorderMode && (
+                <TouchableOpacity onPress={onMenuPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.menuBtn}>
+                    <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
                 </TouchableOpacity>
-            </View>
-        ) : (
-            <View style={styles.artworkPlaceholder}>
-                <Ionicons name="musical-notes" size={22} color={colors.textMuted} />
-            </View>
-        )}
-
-        {/* Track text */}
-        <View style={styles.textContainer}>
-            <Text numberOfLines={1} style={[styles.title, isPlaying && styles.activeTitle]}>
-                {track.title || 'Unknown Title'}
-            </Text>
-            <Text numberOfLines={1} style={styles.artist}>
-                {track.artist || 'Unknown Artist'}
-            </Text>
-        </View>
-
-        {/* Right: ⋮ menu (hidden in selection/reorder mode) */}
-        {!selectionMode && !reorderMode && (
-            <TouchableOpacity onPress={onMenuPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.menuBtn}>
-                <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-        )}
-    </TouchableOpacity>
-);
+            )}
+        </TouchableOpacity>
+    );
+};
 
 export const SongList = ({
     tracks,
@@ -106,9 +117,11 @@ export const SongList = ({
     selectedIds,
     onSelectionChange,
     reorderMode,
-    onMoveUp,
-    onMoveDown,
+    onMoveStart,
+    onMoveEnd,
+    onRemove,
 }: SongListProps) => {
+    const { colors, fonts } = useTheme();
     const { play, activeTrack } = usePlayerStore();
     const [menuTrack, setMenuTrack] = useState<Track | null>(null);
     const [pickerVisible, setPickerVisible] = useState(false);
@@ -134,13 +147,21 @@ export const SongList = ({
                         isSelected={selectedIds?.has(item.id)}
                         onToggleSelect={() => toggleSelect(item.id)}
                         reorderMode={reorderMode}
-                        onMoveUp={() => onMoveUp?.(index)}
-                        onMoveDown={() => onMoveDown?.(index)}
+                        onMoveStart={(dir) => onMoveStart?.(index, dir)}
+                        onMoveEnd={onMoveEnd}
                         onMenuPress={() => setMenuTrack(item)}
                     />
                 )}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={{ paddingBottom: 120 }}
+                contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="musical-notes-outline" size={64} color={colors.textMuted} style={{ opacity: 0.3 }} />
+                        <Text style={[styles.emptyText, { color: colors.textMuted, fontSize: fonts.md }]}>
+                            No songs found
+                        </Text>
+                    </View>
+                }
             />
 
             {/* Song context menu */}
@@ -150,6 +171,7 @@ export const SongList = ({
                     visible={!!menuTrack}
                     onClose={() => setMenuTrack(null)}
                     onAddToPlaylist={() => setPickerVisible(true)}
+                    onRemove={onRemove ? () => onRemove(menuTrack) : undefined}
                 />
             )}
 
@@ -168,7 +190,6 @@ export const SongList = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     itemContainer: {
         flexDirection: 'row',
@@ -179,8 +200,6 @@ const styles = StyleSheet.create({
     artworkPlaceholder: {
         width: 48,
         height: 48,
-        borderRadius: 8,
-        backgroundColor: colors.backgroundLight,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -207,20 +226,23 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     title: {
-        fontSize: fonts.sm,
-        color: colors.text,
         fontWeight: '600',
     },
-    activeTitle: {
-        color: colors.primary,
-    },
     artist: {
-        fontSize: fonts.xs,
-        color: colors.textMuted,
         marginTop: 4,
     },
     menuBtn: {
         paddingHorizontal: 6,
         paddingVertical: 4,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+        paddingVertical: 100,
+    },
+    emptyText: {
+        fontWeight: '600',
     },
 });

@@ -10,6 +10,8 @@ export const PlaybackService = async function () {
 
     TrackPlayer.addEventListener(Event.RemotePrevious, () => TrackPlayer.skipToPrevious());
 
+    TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.reset());
+
     TrackPlayer.addEventListener(Event.RemoteSeek, (event) => TrackPlayer.seekTo(event.position));
 
     // Handle audio ducking (when another app plays sound)

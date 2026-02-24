@@ -1,17 +1,21 @@
 import { defaultStyles } from "@/styles";
 import { Stack } from "expo-router";
 import { View } from "react-native";
-import { StackScreenOptions } from "../../../constants/_layout";
 
 const ArtistsScreenLayout = () => {
   return (
     <View style={defaultStyles.container}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="index"
           options={{
-            ...StackScreenOptions,
-            headerTitle: "",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="[name]"
+          options={{
+            headerShown: false,
           }}
         />
       </Stack>

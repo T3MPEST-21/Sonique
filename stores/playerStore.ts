@@ -1,7 +1,9 @@
 import TrackPlayer, {
     AppKilledPlaybackBehavior,
     Capability,
-    RepeatMode
+    Event,
+    RepeatMode,
+    State
 } from "react-native-track-player";
 import { create } from "zustand";
 import { Track } from "./libraryStore";
@@ -13,6 +15,8 @@ interface PlayerState {
     repeatMode: RepeatMode;
     isShuffleOn: boolean;
 
+    sleepTimerEndsAt: number | null; // Timestamp when sleep timer will trigger
+
     // Actions
     play: (track: Track, contextQueue?: Track[]) => Promise<void>;
     pause: () => Promise<void>;
@@ -23,6 +27,8 @@ interface PlayerState {
     toggleShuffle: () => void;
     toggleRepeat: () => void;
     setupPlayer: () => Promise<void>;
+    stop: () => Promise<void>;
+    setSleepTimer: (minutes: number | null) => void;
 }
 
 import { storage, StorageKeys } from '@/utils/storage';
@@ -35,6 +41,8 @@ const mmkvStorage = {
     removeItem: (name: string) => storage.remove(name),
 };
 
+let sleepTimeout: any = null;
+
 export const usePlayerStore = create<PlayerState>()(
     persist(
         (set, get) => ({
@@ -43,6 +51,7 @@ export const usePlayerStore = create<PlayerState>()(
             queue: [],
             repeatMode: RepeatMode.Off,
             isShuffleOn: false,
+            sleepTimerEndsAt: null,
 
             setupPlayer: async () => {
                 // Initialize the player
@@ -50,7 +59,7 @@ export const usePlayerStore = create<PlayerState>()(
                     await TrackPlayer.setupPlayer();
                     await TrackPlayer.updateOptions({
                         android: {
-                            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+                            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
                         },
                         capabilities: [
                             Capability.Play,
@@ -58,12 +67,28 @@ export const usePlayerStore = create<PlayerState>()(
                             Capability.SkipToNext,
                             Capability.SkipToPrevious,
                             Capability.SeekTo,
+                            Capability.Stop,
                         ],
                         compactCapabilities: [
                             Capability.Play,
                             Capability.Pause,
                             Capability.SkipToNext,
+                            Capability.SkipToPrevious,
+                            Capability.Stop,
                         ],
+                    });
+
+                    // Add central listeners
+                    TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
+                        set({ isPlaying: state === State.Playing });
+                    });
+
+                    TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async (event) => {
+                        const index = await TrackPlayer.getActiveTrackIndex();
+                        if (index !== undefined && index !== null) {
+                            const track = await TrackPlayer.getTrack(index);
+                            if (track) set({ activeTrack: track as any });
+                        }
                     });
 
                     // Restore queue to TrackPlayer if exists (from persistence)
@@ -79,9 +104,6 @@ export const usePlayerStore = create<PlayerState>()(
                         }));
                         await TrackPlayer.add(trackPlayerQueue);
 
-                        // If there was an active track, skip to it? 
-                        // Or just let user press play. 
-                        // For now we assume paused state.
                         if (activeTrack) {
                             const index = trackPlayerQueue.findIndex(t => t.id === activeTrack.id);
                             if (index !== -1) {
@@ -90,8 +112,20 @@ export const usePlayerStore = create<PlayerState>()(
                         }
                     }
 
+                    // Check for existing sleep timer
+                    const { sleepTimerEndsAt, setSleepTimer } = get();
+                    if (sleepTimerEndsAt) {
+                        const now = Date.now();
+                        const diff = sleepTimerEndsAt - now;
+                        if (diff > 0) {
+                            setSleepTimer(diff / 60000);
+                        } else {
+                            set({ sleepTimerEndsAt: null });
+                        }
+                    }
+
                 } catch (e) {
-                    // Player might already be set up, ignore error
+                    // Player already setup
                 }
             },
 
@@ -158,6 +192,32 @@ export const usePlayerStore = create<PlayerState>()(
 
                 TrackPlayer.setRepeatMode(nextMode);
                 set({ repeatMode: nextMode });
+            },
+
+            stop: async () => {
+                await TrackPlayer.reset();
+                set({ activeTrack: null, isPlaying: false, queue: [] });
+            },
+
+            setSleepTimer: (minutes) => {
+                if (sleepTimeout) {
+                    clearTimeout(sleepTimeout);
+                    sleepTimeout = null;
+                }
+
+                if (minutes === null) {
+                    set({ sleepTimerEndsAt: null });
+                    return;
+                }
+
+                const endsAt = Date.now() + minutes * 60 * 1000;
+                set({ sleepTimerEndsAt: endsAt });
+
+                sleepTimeout = setTimeout(async () => {
+                    await TrackPlayer.pause();
+                    set({ isPlaying: false, sleepTimerEndsAt: null });
+                    sleepTimeout = null;
+                }, minutes * 60 * 1000);
             }
         }),
         {
@@ -168,6 +228,7 @@ export const usePlayerStore = create<PlayerState>()(
                 queue: state.queue,
                 repeatMode: state.repeatMode,
                 isShuffleOn: state.isShuffleOn,
+                sleepTimerEndsAt: state.sleepTimerEndsAt,
             }),
         }
     )
