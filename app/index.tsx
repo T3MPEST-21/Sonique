@@ -1,34 +1,28 @@
+import { useTheme } from '@/constants/theme';
+import { useLibraryStore } from '@/stores/libraryStore';
 import { router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { SoniqueLogo as SoniqueBrandingLogo } from '../components/SoniqueBrandingLogo';
-import { useTheme } from '../constants/theme';
-import { useSetupTrackPlayer } from '../hooks/useSetupTrackPlayer';
-import { useLibraryStore } from '../stores/libraryStore';
 
 const { width } = Dimensions.get('window');
 
 export default function ManualSplash() {
-    const { fetchTracks, loadFromCache, initialized: isLibraryReady } = useLibraryStore();
-    const [isPlayerReady, setIsPlayerReady] = React.useState(false);
+    const { loadFromCache, initialized: isLibraryReady } = useLibraryStore();
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
     const textAnim = React.useRef(new Animated.Value(0)).current;
-    const { colors, fonts } = useTheme();
-
-    useSetupTrackPlayer({
-        onLoad: () => setIsPlayerReady(true)
-    });
+    const progressAnim = React.useRef(new Animated.Value(0.4)).current;
+    const hasNavigated = React.useRef(false);
+    const { colors } = useTheme();
 
     useEffect(() => {
-        // Fade in entire content
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 1000,
             useNativeDriver: true,
         }).start();
 
-        // Animate text entrance
         Animated.timing(textAnim, {
             toValue: 1,
             duration: 1500,
@@ -36,24 +30,46 @@ export default function ManualSplash() {
             useNativeDriver: true,
         }).start();
 
-        // Trigger library initialization
-        if (!isLibraryReady) loadFromCache();
-        fetchTracks();
+        // Load from cache immediately. If no cache (first install), scan once.
+        if (!isLibraryReady) {
+            loadFromCache();
+        }
     }, []);
 
     useEffect(() => {
-        if (isLibraryReady && isPlayerReady) {
-            // Give it a moment to show the branding
+        if (isLibraryReady) {
             const timer = setTimeout(() => {
                 SplashScreen.hideAsync();
                 router.replace('/(tabs)/(songs)');
-            }, 2500);
+            }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isLibraryReady, isPlayerReady]);
+    }, [isLibraryReady]);
+
+    // Safety net — if cache is empty and first-time scan hasn't triggered
+    useEffect(() => {
+        const { tracks, fetchTracks: scan } = useLibraryStore.getState();
+        if (tracks.length === 0) {
+            scan(); // one-time fallback for first install
+        }
+    }, []);
+
+    // Safety net: if library takes too long, navigate anyway after 6 seconds
+    useEffect(() => {
+        const fallback = setTimeout(() => {
+            SplashScreen.hideAsync();
+            router.replace('/(tabs)/(songs)');
+            if (!hasNavigated.current) {
+                hasNavigated.current = true;
+                SplashScreen.hideAsync();
+                router.replace('/(tabs)/(songs)');
+            }
+        }, 6000);
+        return () => clearTimeout(fallback);
+    }, []);
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: '#000000' }]}>
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                 <SoniqueBrandingLogo size={140} color={colors.primary} />
 
@@ -79,7 +95,10 @@ export default function ManualSplash() {
                     styles.loaderBar,
                     {
                         backgroundColor: colors.primary,
-                        width: isLibraryReady ? width : width * 0.4
+                        width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, width]
+                        })
                     }
                 ]} />
             </View>
@@ -90,7 +109,6 @@ export default function ManualSplash() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000',
         justifyContent: 'center',
         alignItems: 'center',
     },

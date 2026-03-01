@@ -199,8 +199,6 @@ export default function PlaylistDetailScreen() {
                             <Ionicons name="chevron-back" size={24} color={colors.text} />
                         </TouchableOpacity>
 
-                        // Hold-to-accelerate refs
-
                         {reorderMode ? (
                             <>
                                 <Text style={[styles.headerTitle, { color: colors.text, fontSize: fonts.md }]}>Reorder</Text>
@@ -439,7 +437,7 @@ const styles = StyleSheet.create({
     playBtnText: { color: '#fff', fontWeight: '700' },
     fab: {
         position: 'absolute',
-        bottom: 90,
+        bottom: 100,
         right: 24,
         width: 52,
         height: 52,

@@ -7,16 +7,15 @@ import TrackPlayer, {
 } from "react-native-track-player";
 import { create } from "zustand";
 import { Track } from "./libraryStore";
+import { useThemeStore } from "./themeStore";
 
 interface PlayerState {
     activeTrack: Track | null;
-    isPlaying: boolean; // Just a UI reflection, source of truth is TrackPlayer
+    isPlaying: boolean; // UI reflection — source of truth is TrackPlayer
     queue: Track[];
     repeatMode: RepeatMode;
     isShuffleOn: boolean;
-
-    sleepTimerEndsAt: number | null; // Timestamp when sleep timer will trigger
-
+    sleepTimerEndsAt: number | null;
     // Actions
     play: (track: Track, contextQueue?: Track[]) => Promise<void>;
     pause: () => Promise<void>;
@@ -42,6 +41,9 @@ const mmkvStorage = {
 };
 
 let sleepTimeout: any = null;
+let isCrossfadingOut = false;
+let isCrossfadingIn = false;
+let crossfadeSessionId = 0;
 
 export const usePlayerStore = create<PlayerState>()(
     persist(
@@ -83,12 +85,69 @@ export const usePlayerStore = create<PlayerState>()(
                         set({ isPlaying: state === State.Playing });
                     });
 
-                    TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async (event) => {
+                    TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async () => {
+                        isCrossfadingOut = false;
+                        const currentSession = ++crossfadeSessionId;
+
+                        // If we are crossfading in, handle volume ramp-up
+                        const { crossfadeEnabled, crossfadeDuration } = useThemeStore.getState();
+                        if (crossfadeEnabled && crossfadeDuration > 0 && isCrossfadingIn) {
+                            await TrackPlayer.setVolume(0);
+                            const steps = 10;
+                            const stepMs = (crossfadeDuration * 500) / steps; // Fade in over half the time
+                            const volumeStep = 1 / steps;
+
+                            for (let i = 1; i <= steps; i++) {
+                                setTimeout(async () => {
+                                    if (currentSession !== crossfadeSessionId) return;
+                                    await TrackPlayer.setVolume(Math.min(1, volumeStep * i));
+                                    if (i === steps) isCrossfadingIn = false;
+                                }, stepMs * i);
+                            }
+                        } else {
+                            isCrossfadingIn = false; // Manual skip resets crossfade state
+                            await TrackPlayer.setVolume(1);
+                        }
+
                         const index = await TrackPlayer.getActiveTrackIndex();
                         if (index !== undefined && index !== null) {
                             const track = await TrackPlayer.getTrack(index);
                             if (track) set({ activeTrack: track as any });
                         }
+                    });
+
+                    // Crossfade: fade out near end, skip, fade back in
+                    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async ({ position, duration }) => {
+                        if (isCrossfadingOut || isCrossfadingIn || duration <= 0) return;
+                        const { crossfadeEnabled, crossfadeDuration } = useThemeStore.getState();
+                        if (!crossfadeEnabled || crossfadeDuration <= 0) return;
+                        if (get().repeatMode === RepeatMode.Track) return;
+
+                        const remaining = duration - position;
+                        if (remaining > crossfadeDuration || remaining <= 1) return; // Don't start if too close to end either
+
+                        isCrossfadingOut = true;
+                        isCrossfadingIn = true; // Signal the next track to fade in
+                        const currentSession = crossfadeSessionId;
+
+                        const steps = 10;
+                        const fadeDurationMs = crossfadeDuration * 1000;
+                        const stepMs = fadeDurationMs / steps;
+                        const volumeStep = 1 / steps;
+
+                        // Start fade out
+                        for (let i = 1; i <= steps; i++) {
+                            setTimeout(async () => {
+                                if (currentSession !== crossfadeSessionId) return;
+                                await TrackPlayer.setVolume(Math.max(0, 1 - volumeStep * i));
+                            }, stepMs * i);
+                        }
+
+                        // Skip at the midpoint
+                        setTimeout(async () => {
+                            if (currentSession !== crossfadeSessionId) return;
+                            await TrackPlayer.skipToNext();
+                        }, fadeDurationMs / 2);
                     });
 
                     // Restore queue to TrackPlayer if exists (from persistence)
@@ -230,6 +289,7 @@ export const usePlayerStore = create<PlayerState>()(
                 isShuffleOn: state.isShuffleOn,
                 sleepTimerEndsAt: state.sleepTimerEndsAt,
             }),
+            // Never persist isPlaying; always start paused after restart
         }
     )
 );

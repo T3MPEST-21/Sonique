@@ -15,6 +15,8 @@ interface ThemeState {
     cornerRadius: number;
     glassIntensity: number;
     hapticLevel: HapticLevel;
+    crossfadeEnabled: boolean;
+    crossfadeDuration: number; // seconds: 2 | 4 | 6 | 8
 
     // Actions
     updateTheme: (updates: Partial<Omit<ThemeState, 'updateTheme' | 'resetToDefaults'>>) => void;
@@ -23,12 +25,14 @@ interface ThemeState {
 
 const DEFAULT_THEME: Omit<ThemeState, 'updateTheme' | 'resetToDefaults'> = {
     mode: 'dark',
-    accentColor: '#fc3c44', // Apollo Red
+    accentColor: '#fc3c44',
     backgroundStyle: 'solid',
     fontSizeScale: 'standard',
     cornerRadius: 12,
     glassIntensity: 0.5,
     hapticLevel: 'medium',
+    crossfadeEnabled: false,
+    crossfadeDuration: 4,
 };
 
 export const useThemeStore = create<ThemeState>()(

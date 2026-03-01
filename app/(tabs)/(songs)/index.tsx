@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type SortMode = 'title' | 'artist' | 'default';
 
 const SongsScreen = () => {
-    const { tracks, fetchTracks, loadFromCache, isLoading, error, initialized } = useLibraryStore();
+    const { tracks, loadFromCache, isLoading, error, initialized, fetchTracks } = useLibraryStore();
     const insets = useSafeAreaInsets();
     const { colors, fonts, spacing, isDark, cornerRadius } = useTheme();
     const [showMenu, setShowMenu] = useState(false);
@@ -20,7 +20,6 @@ const SongsScreen = () => {
 
     useEffect(() => {
         if (!initialized) loadFromCache();
-        fetchTracks();
     }, []);
 
     const filteredAndSortedTracks = React.useMemo(() => {

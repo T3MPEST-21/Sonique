@@ -28,7 +28,7 @@ export default function SettingsScreen() {
     const { colors, fonts, spacing, cornerRadius, isDark } = useTheme();
     const insets = useSafeAreaInsets();
     const { tracks } = useLibraryStore();
-    const { mode, accentColor, updateTheme, resetToDefaults } = useThemeStore();
+    const { mode, accentColor, crossfadeEnabled, crossfadeDuration, updateTheme, resetToDefaults } = useThemeStore();
     const { sleepTimerEndsAt, setSleepTimer } = usePlayerStore();
 
     const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -215,6 +215,45 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     </View>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    {/* Crossfade */}
+                    <View style={styles.settingItemCol}>
+                        <View style={[styles.settingLabelContainer, { justifyContent: 'space-between', flex: 1 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                <Ionicons name="swap-horizontal" size={20} color={colors.text} />
+                                <Text style={[styles.settingLabel, { color: colors.text }]}>Crossfade</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={[styles.toggleBtn, crossfadeEnabled && { backgroundColor: colors.primary }]}
+                                onPress={() => updateTheme({ crossfadeEnabled: !crossfadeEnabled })}
+                            >
+                                <View style={[styles.toggleKnob, crossfadeEnabled ? { transform: [{ translateX: 18 }] } : null]} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {crossfadeEnabled && (
+                            <View style={styles.timerOptions}>
+                                {[2, 4, 6, 8].map(sec => (
+                                    <TouchableOpacity
+                                        key={sec}
+                                        onPress={() => updateTheme({ crossfadeDuration: sec })}
+                                        style={[
+                                            styles.timerOption,
+                                            crossfadeDuration === sec && styles.timerOptionActive,
+                                            { borderColor: colors.border }
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.timerOptionText,
+                                            { color: crossfadeDuration === sec ? colors.primary : colors.text, fontSize: fonts.xs }
+                                        ]}>{sec}s</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -285,6 +324,8 @@ const styles = StyleSheet.create({
     timerOption: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: 1 },
     timerOptionActive: { backgroundColor: 'rgba(0,0,0,0.05)' },
     timerOptionText: { fontWeight: '700' },
+    toggleBtn: { width: 44, height: 26, borderRadius: 13, backgroundColor: 'rgba(120,120,120,0.3)', justifyContent: 'center', padding: 2 },
+    toggleKnob: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2 },
     resetButton: { padding: 16, alignItems: 'center' },
     resetText: { fontWeight: '700' },
     footer: { alignItems: 'center', marginTop: 10 },
