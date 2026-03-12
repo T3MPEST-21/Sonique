@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.sonique.music.app-mergeReleaseResources-87:/values-night-v33/values-night-v33.xml",
+            "map": [
+                {
+                    "source": "/home/t3mpest/.gradle/caches/8.14.3/transforms/7f8a66ef80ca7c4cf488ee11bf61c884/transformed/core-splashscreen-1.2.0-alpha02/res/values-night-v33/values-night-v33.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "4",
+                        "endColumns": "12",
+                        "endOffsets": "215"
+                    }
+                }
+            ]
+        }
+    ]
+}

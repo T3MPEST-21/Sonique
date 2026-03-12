@@ -1,0 +1,18 @@
+<lint-module
+    format="1"
+    dir="/home/t3mpest/Documents/mobile/Sonique/android/app"
+    name=":app"
+    type="APP"
+    maven="Sonique:app:unspecified"
+    agpVersion="8.11.0"
+    buildFolder="build"
+    bootClassPath="/home/t3mpest/android-sdk/platforms/android-36/android.jar:/home/t3mpest/android-sdk/build-tools/36.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-36">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>
