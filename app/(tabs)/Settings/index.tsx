@@ -28,7 +28,7 @@ export default function SettingsScreen() {
     const { colors, fonts, spacing, cornerRadius, isDark } = useTheme();
     const insets = useSafeAreaInsets();
     const { tracks } = useLibraryStore();
-    const { mode, accentColor, crossfadeEnabled, crossfadeDuration, updateTheme, resetToDefaults } = useThemeStore();
+    const { mode, accentColor, fontSizeScale, updateTheme, resetToDefaults } = useThemeStore();
     const { sleepTimerEndsAt, setSleepTimer } = usePlayerStore();
 
     const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -178,6 +178,33 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     </View>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    {/* Typography */}
+                    <View style={styles.settingItemCol}>
+                        <View style={styles.settingLabelContainer}>
+                            <Ionicons name="text-outline" size={20} color={colors.text} />
+                            <Text style={[styles.settingLabel, { color: colors.text }]}>Typography</Text>
+                        </View>
+                        <View style={styles.themeToggle}>
+                            {(['small', 'medium', 'large'] as const).map((s) => (
+                                <TouchableOpacity
+                                    key={s}
+                                    onPress={() => updateTheme({ fontSizeScale: s })}
+                                    style={[
+                                        styles.toggleOption,
+                                        fontSizeScale === s && { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.toggleText,
+                                        { color: fontSizeScale === s ? colors.primary : colors.textMuted, fontSize: fonts.xs }
+                                    ]}>{s.charAt(0).toUpperCase() + s.slice(1)}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
                 </View>
             </View>
 
@@ -218,42 +245,6 @@ export default function SettingsScreen() {
 
                     <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-                    {/* Crossfade */}
-                    <View style={styles.settingItemCol}>
-                        <View style={[styles.settingLabelContainer, { justifyContent: 'space-between', flex: 1 }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                <Ionicons name="swap-horizontal" size={20} color={colors.text} />
-                                <Text style={[styles.settingLabel, { color: colors.text }]}>Crossfade</Text>
-                            </View>
-                            <TouchableOpacity
-                                style={[styles.toggleBtn, crossfadeEnabled && { backgroundColor: colors.primary }]}
-                                onPress={() => updateTheme({ crossfadeEnabled: !crossfadeEnabled })}
-                            >
-                                <View style={[styles.toggleKnob, crossfadeEnabled ? { transform: [{ translateX: 18 }] } : null]} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {crossfadeEnabled && (
-                            <View style={styles.timerOptions}>
-                                {[2, 4, 6, 8].map(sec => (
-                                    <TouchableOpacity
-                                        key={sec}
-                                        onPress={() => updateTheme({ crossfadeDuration: sec })}
-                                        style={[
-                                            styles.timerOption,
-                                            crossfadeDuration === sec && styles.timerOptionActive,
-                                            { borderColor: colors.border }
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.timerOptionText,
-                                            { color: crossfadeDuration === sec ? colors.primary : colors.text, fontSize: fonts.xs }
-                                        ]}>{sec}s</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        )}
-                    </View>
                 </View>
             </View>
 
@@ -288,7 +279,7 @@ export default function SettingsScreen() {
             </View>
 
             <View style={[styles.footer, { paddingHorizontal: spacing.horizontal }]}>
-                <Text style={[styles.version, { color: colors.textMuted }]}>Sonique • Made with ❤️</Text>
+                <Text style={[styles.version, { color: colors.textMuted }]}>Sonique • Made by T3MPEST</Text>
             </View>
         </ScrollView>
     );
