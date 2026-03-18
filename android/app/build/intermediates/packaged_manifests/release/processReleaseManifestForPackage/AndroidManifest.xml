@@ -20,6 +20,10 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <queries>
         <intent>
@@ -60,10 +64,6 @@
         <package android:name="androidx.test.services" />
         <package android:name="com.google.android.apps.common.testing.services" />
     </queries>
-
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!--
   Allows Glide to monitor connectivity status and restart failed requests if users go from a
   a disconnected to a connected network state.

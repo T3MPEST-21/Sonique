@@ -41,88 +41,90 @@
 22    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 22-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:11:3-78
 22-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:11:20-76
-23
-24    <queries>
-24-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:3-18:13
-25        <intent>
-25-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:5-17:14
-26            <action android:name="android.intent.action.VIEW" />
-26-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:7-58
-26-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:15-56
+23    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+23-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:3-75
+23-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:20-72
+24    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+24-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:3-90
+24-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:20-87
+25    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+25-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:3-75
+25-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:20-72
+26    <uses-permission android:name="android.permission.WAKE_LOCK" />
+26-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:3-66
+26-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:20-63
 27
-28            <category android:name="android.intent.category.BROWSABLE" />
-28-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:7-67
-28-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:17-65
-29
-30            <data android:scheme="https" />
-30-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:7-37
-30-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:13-35
-31        </intent>
-32        <!-- Query open documents -->
-33        <intent>
-33-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:15:9-17:18
-34            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
-34-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:16:13-79
-34-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:16:21-76
+28    <queries>
+28-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:3-22:13
+29        <intent>
+29-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:17:5-21:14
+30            <action android:name="android.intent.action.VIEW" />
+30-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:7-58
+30-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:15-56
+31
+32            <category android:name="android.intent.category.BROWSABLE" />
+32-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:7-67
+32-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:17-65
+33
+34            <data android:scheme="https" />
+34-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:7-37
+34-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:13-35
 35        </intent>
-36        <intent>
-36-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:15:9-19:18
-37
-38            <!-- Required for picking images from the camera roll if targeting API 30 -->
-39            <action android:name="android.media.action.IMAGE_CAPTURE" />
-39-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:18:13-73
-39-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:18:21-70
-40        </intent>
-41        <intent>
-41-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:20:9-24:18
-42
-43            <!-- Required for picking images from the camera if targeting API 30 -->
-44            <action android:name="android.media.action.ACTION_VIDEO_CAPTURE" />
-44-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:23:13-80
-44-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:23:21-77
-45        </intent>
-46        <intent>
-46-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:8:9-12:18
-47
-48            <!-- Required for opening tabs if targeting API 30 -->
-49            <action android:name="android.support.customtabs.action.CustomTabsService" />
-49-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:11:13-90
-49-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:11:21-87
-50        </intent>
-51        <intent>
-51-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:8:9-14:18
-52            <action android:name="android.intent.action.GET_CONTENT" />
-52-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:9:13-72
-52-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:9:21-69
-53
-54            <category android:name="android.intent.category.OPENABLE" />
-54-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:11:13-73
-54-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:11:23-70
-55
-56            <data android:mimeType="*/*" />
-56-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:7-37
-57        </intent>
-58
-59        <package android:name="androidx.test.orchestrator" />
-59-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:25:9-62
-59-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:25:18-59
-60        <package android:name="androidx.test.services" />
-60-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:26:9-58
-60-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:26:18-55
-61        <package android:name="com.google.android.apps.common.testing.services" />
-61-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:27:9-83
-61-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:27:18-80
-62    </queries>
-63
-64    <uses-permission android:name="android.permission.WAKE_LOCK" />
-64-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:5-68
-64-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:22-65
-65    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-65-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:5-77
-65-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:22-74
-66    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-66-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:5-92
-66-->[:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:22-89
+36        <!-- Query open documents -->
+37        <intent>
+37-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:15:9-17:18
+38            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+38-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:16:13-79
+38-->[host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:16:21-76
+39        </intent>
+40        <intent>
+40-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:15:9-19:18
+41
+42            <!-- Required for picking images from the camera roll if targeting API 30 -->
+43            <action android:name="android.media.action.IMAGE_CAPTURE" />
+43-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:18:13-73
+43-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:18:21-70
+44        </intent>
+45        <intent>
+45-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:20:9-24:18
+46
+47            <!-- Required for picking images from the camera if targeting API 30 -->
+48            <action android:name="android.media.action.ACTION_VIDEO_CAPTURE" />
+48-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:23:13-80
+48-->[host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:23:21-77
+49        </intent>
+50        <intent>
+50-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:8:9-12:18
+51
+52            <!-- Required for opening tabs if targeting API 30 -->
+53            <action android:name="android.support.customtabs.action.CustomTabsService" />
+53-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:11:13-90
+53-->[host.exp.exponent:expo.modules.webbrowser:15.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/e24c4331a5a56697e334878b414a0e26/transformed/expo.modules.webbrowser-15.0.10/AndroidManifest.xml:11:21-87
+54        </intent>
+55        <intent>
+55-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:8:9-14:18
+56            <action android:name="android.intent.action.GET_CONTENT" />
+56-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:9:13-72
+56-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:9:21-69
+57
+58            <category android:name="android.intent.category.OPENABLE" />
+58-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:11:13-73
+58-->[com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/2014e291f2088d0bcdf3edea144ae22e/transformed/android-image-cropper-4.6.0/AndroidManifest.xml:11:23-70
+59
+60            <data android:mimeType="*/*" />
+60-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:7-37
+61        </intent>
+62
+63        <package android:name="androidx.test.orchestrator" />
+63-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:25:9-62
+63-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:25:18-59
+64        <package android:name="androidx.test.services" />
+64-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:26:9-58
+64-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:26:18-55
+65        <package android:name="com.google.android.apps.common.testing.services" />
+65-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:27:9-83
+65-->[androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:27:18-80
+66    </queries>
 67    <!--
 68  Allows Glide to monitor connectivity status and restart failed requests if users go from a
 69  a disconnected to a connected network state.
@@ -146,92 +148,92 @@
 78-->[androidx.core:core:1.16.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/793b7d65489692786592b5333d3bd6ae/transformed/core-1.16.0/AndroidManifest.xml:26:22-94
 79
 80    <application
-80-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:3-36:17
+80-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:3-40:17
 81        android:name="com.sonique.music.MainApplication"
-81-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:16-47
+81-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:16-47
 82        android:allowBackup="true"
-82-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:162-188
+82-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:162-188
 83        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 83-->[androidx.core:core:1.16.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/793b7d65489692786592b5333d3bd6ae/transformed/core-1.16.0/AndroidManifest.xml:28:18-86
 84        android:enableOnBackInvokedCallback="false"
-84-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:248-291
+84-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:248-291
 85        android:extractNativeLibs="false"
 86        android:icon="@mipmap/ic_launcher"
-86-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:81-115
+86-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:81-115
 87        android:label="@string/app_name"
-87-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:48-80
+87-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:48-80
 88        android:requestLegacyExternalStorage="true"
-88-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:292-335
+88-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:292-335
 89        android:roundIcon="@mipmap/ic_launcher_round"
-89-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:116-161
+89-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:116-161
 90        android:supportsRtl="true"
-90-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:221-247
+90-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:221-247
 91        android:theme="@style/AppTheme" >
-91-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:189-220
+91-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:189-220
 92        <meta-data
-92-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:5-83
+92-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:5-83
 93            android:name="expo.modules.updates.ENABLED"
-93-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:16-59
+93-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:16-59
 94            android:value="false" />
-94-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:60-81
+94-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:60-81
 95        <meta-data
-95-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:5-105
+95-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:5-105
 96            android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH"
-96-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:16-80
+96-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:16-80
 97            android:value="ALWAYS" />
-97-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:81-103
+97-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:81-103
 98        <meta-data
-98-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:5-99
+98-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:5-99
 99            android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS"
-99-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:16-79
+99-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:16-79
 100            android:value="0" />
-100-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:80-97
+100-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:80-97
 101
 102        <activity
-102-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:5-35:16
+102-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:5-39:16
 103            android:name="com.sonique.music.MainActivity"
-103-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:15-43
+103-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:15-43
 104            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"
-104-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:44-134
+104-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:44-134
 105            android:exported="true"
-105-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:256-279
+105-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:256-279
 106            android:launchMode="singleTask"
-106-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:135-166
+106-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:135-166
 107            android:screenOrientation="portrait"
-107-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:280-316
+107-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:280-316
 108            android:theme="@style/Theme.App.SplashScreen"
-108-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:210-255
+108-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:210-255
 109            android:windowSoftInputMode="adjustResize" >
-109-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:167-209
+109-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:167-209
 110            <intent-filter>
-110-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:7-27:23
+110-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:28:7-31:23
 111                <action android:name="android.intent.action.MAIN" />
-111-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:9-60
-111-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:17-58
+111-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:29:9-60
+111-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:29:17-58
 112
 113                <category android:name="android.intent.category.LAUNCHER" />
-113-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:9-68
-113-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:19-66
+113-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:9-68
+113-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:19-66
 114            </intent-filter>
 115            <intent-filter>
-115-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:28:7-34:23
+115-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:32:7-38:23
 116                <action android:name="android.intent.action.VIEW" />
-116-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:7-58
-116-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:15-56
+116-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:7-58
+116-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:15-56
 117
 118                <category android:name="android.intent.category.DEFAULT" />
-118-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:9-67
-118-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:19-65
+118-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:34:9-67
+118-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:34:19-65
 119                <category android:name="android.intent.category.BROWSABLE" />
-119-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:7-67
-119-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:17-65
+119-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:7-67
+119-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:17-65
 120
 121                <data android:scheme="sonique" />
-121-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:7-37
-121-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:13-35
+121-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:7-37
+121-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:13-35
 122                <data android:scheme="exp+sonique" />
-122-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:7-37
-122-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:13-35
+122-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:7-37
+122-->/home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:13-35
 123            </intent-filter>
 124        </activity>
 125        <!-- The main service, handles playback, playlists and media buttons -->

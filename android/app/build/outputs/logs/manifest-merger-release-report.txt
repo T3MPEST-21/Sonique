@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-37:12
-INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-37:12
-INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-37:12
-INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-37:12
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-41:12
+INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-41:12
+INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-41:12
+INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:1:1-41:12
 MERGED from [:react-native-gesture-handler] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-gesture-handler/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:2:1-7:12
 MERGED from [:react-native-mmkv] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-mmkv/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:2:1-7:12
 MERGED from [:react-native-safe-area-context] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-safe-area-context/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:2:1-7:12
@@ -295,8 +295,30 @@ MERGED from [host.exp.exponent:expo.modules.medialibrary:18.2.1] /home/t3mpest/.
 MERGED from [host.exp.exponent:expo.modules.medialibrary:18.2.1] /home/t3mpest/.gradle/caches/8.14.3/transforms/b506ca494b5dffccc339b21863e8a26a/transformed/expo.modules.medialibrary-18.2.1/AndroidManifest.xml:9:5-81
 	android:name
 		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:11:20-76
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:3-75
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:5-77
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:5-77
+	android:name
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:20-72
+uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:3-90
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:5-92
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:5-92
+	android:name
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:20-87
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:3-75
+	android:name
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:20-72
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:3-66
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:5-68
+MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:5-68
+	android:name
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:20-63
 queries
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:12:3-18:13
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:3-22:13
 MERGED from [host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:12:5-18:15
 MERGED from [host.exp.exponent:expo.modules.filesystem:19.0.21] /home/t3mpest/.gradle/caches/8.14.3/transforms/21aba5ce56271808deed356ef616f5c6/transformed/expo.modules.filesystem-19.0.21/AndroidManifest.xml:12:5-18:15
 MERGED from [host.exp.exponent:expo.modules.imagepicker:17.0.10] /home/t3mpest/.gradle/caches/8.14.3/transforms/b49fddddbceb91949b75f239712a11eb/transformed/expo.modules.imagepicker-17.0.10/AndroidManifest.xml:14:5-25:15
@@ -308,22 +330,22 @@ MERGED from [com.vanniktech:android-image-cropper:4.6.0] /home/t3mpest/.gradle/c
 MERGED from [androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:24:5-28:15
 MERGED from [androidx.test:runner:1.4.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/7088eedd5ffe67897b1b21dc8003ee9e/transformed/runner-1.4.0/AndroidManifest.xml:24:5-28:15
 intent#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+data:scheme:https
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:13:5-17:14
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:17:5-21:14
 action#android.intent.action.VIEW
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:7-58
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:7-58
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:14:15-56
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:18:15-56
 category#android.intent.category.BROWSABLE
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:7-67
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:7-67
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:15:17-65
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:17-65
 data
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:7-37
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:7-37
 	android:scheme
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:16:13-35
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:13-35
 application
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:3-36:17
-INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:3-36:17
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:3-40:17
+INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:3-40:17
 MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:11:5-23:19
 MERGED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:11:5-23:19
 MERGED from [:expo-dev-launcher] /home/t3mpest/Documents/mobile/Sonique/node_modules/expo-dev-launcher/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:5-11:19
@@ -391,75 +413,75 @@ MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/t3mpest/.gradle/ca
 	android:extractNativeLibs
 		INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml
 	android:requestLegacyExternalStorage
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:292-335
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:292-335
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.16.0] /home/t3mpest/.gradle/caches/8.14.3/transforms/793b7d65489692786592b5333d3bd6ae/transformed/core-1.16.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:221-247
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:221-247
 	android:label
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:48-80
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:48-80
 	android:roundIcon
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:116-161
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:116-161
 	android:icon
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:81-115
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:81-115
 	android:allowBackup
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:162-188
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:162-188
 	android:theme
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:189-220
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:189-220
 	android:enableOnBackInvokedCallback
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:248-291
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:248-291
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:19:16-47
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:16-47
 meta-data#expo.modules.updates.ENABLED
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:5-83
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:5-83
 	android:value
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:60-81
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:60-81
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:20:16-59
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:16-59
 meta-data#expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:5-105
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:5-105
 	android:value
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:81-103
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:81-103
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:21:16-80
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:16-80
 meta-data#expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:5-99
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:5-99
 	android:value
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:80-97
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:80-97
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:22:16-79
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:16-79
 activity#com.sonique.music.MainActivity
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:5-35:16
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:5-39:16
 	android:screenOrientation
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:280-316
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:280-316
 	android:launchMode
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:135-166
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:135-166
 	android:windowSoftInputMode
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:167-209
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:167-209
 	android:exported
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:256-279
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:256-279
 	android:configChanges
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:44-134
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:44-134
 	android:theme
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:210-255
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:210-255
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:23:15-43
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:27:15-43
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:24:7-27:23
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:28:7-31:23
 action#android.intent.action.MAIN
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:9-60
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:29:9-60
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:25:17-58
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:29:17-58
 category#android.intent.category.LAUNCHER
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:9-68
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:9-68
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:26:19-66
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:19-66
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:scheme:exp+sonique+data:scheme:sonique
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:28:7-34:23
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:32:7-38:23
 category#android.intent.category.DEFAULT
-ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:9-67
+ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:34:9-67
 	android:name
-		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:30:19-65
+		ADDED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml:34:19-65
 uses-sdk
 INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml
@@ -898,18 +920,6 @@ MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/t3mpest/.gradle/ca
 		INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from /home/t3mpest/Documents/mobile/Sonique/android/app/src/main/AndroidManifest.xml
-uses-permission#android.permission.WAKE_LOCK
-ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:5-68
-	android:name
-		ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:7:22-65
-uses-permission#android.permission.FOREGROUND_SERVICE
-ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:5-77
-	android:name
-		ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:8:22-74
-uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
-ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:5-92
-	android:name
-		ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:9:22-89
 service#com.doublesymmetry.trackplayer.service.MusicService
 ADDED from [:react-native-track-player] /home/t3mpest/Documents/mobile/Sonique/node_modules/react-native-track-player/android/build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml:14:9-22:19
 	android:enabled

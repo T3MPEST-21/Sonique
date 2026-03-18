@@ -25,7 +25,7 @@
     <resValue
         type="string"
         name="react_native_dev_server_ip"
-        value="10.177.251.3" />
+        value="10.110.68.3" />
     <resValue
         type="integer"
         name="react_native_dev_server_port"

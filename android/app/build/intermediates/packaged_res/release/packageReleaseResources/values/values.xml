@@ -9,7 +9,7 @@
     <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
     <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
     <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
-    <string name="react_native_dev_server_ip" translatable="false">10.177.251.3</string>
+    <string name="react_native_dev_server_ip" translatable="false">10.110.68.3</string>
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
     <item name="android:enforceNavigationBarContrast" ns1:targetApi="29">true</item>
     <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>

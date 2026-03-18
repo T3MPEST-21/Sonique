@@ -2503,7 +2503,7 @@
     <string description="a group of radio buttons" name="radiogroup_description">Radio Group</string>
     <string name="range_end">"Range end"</string>
     <string name="range_start">"Range start"</string>
-    <string name="react_native_dev_server_ip" translatable="false">10.177.251.3</string>
+    <string name="react_native_dev_server_ip" translatable="false">10.110.68.3</string>
     <string description="an interactive element inside a tablist" name="rn_tab_description">Tab</string>
     <string name="rntp_temporary_channel_id">rntp_temporary_channel</string>
     <string name="rntp_temporary_channel_name">temporary_channel</string>
