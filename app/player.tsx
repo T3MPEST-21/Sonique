@@ -220,7 +220,7 @@ const PlayerScreen = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={toggleRepeat} style={styles.secondaryBtn}>
-                        <Ionicons name={repeatMode === 2 ? "repeat-outline" : "repeat"} size={22} color={repeatMode !== 0 ? colors.primary : colors.textMuted} />
+                        <Ionicons name={repeatMode === 0 ? "repeat-outline" : "repeat"} size={22} color={repeatMode !== 0 ? colors.primary : colors.textMuted} />
                         {repeatMode === 2 && <View style={[styles.repeatOneDot, { backgroundColor: colors.primary }]} />}
                     </TouchableOpacity>
                 </View>
