@@ -14,18 +14,13 @@ export const PlaybackService = async function () {
 
     TrackPlayer.addEventListener(Event.RemoteSeek, (event) => TrackPlayer.seekTo(event.position));
 
-    // Handle audio ducking (when another app plays sound)
+    // Simple Ducking Handler (Standard RNTP pattern)
     TrackPlayer.addEventListener(Event.RemoteDuck, async (e) => {
         if (e.paused) {
-            // Incoming call or external audio started
-            if (e.permanent) {
-                await TrackPlayer.pause();
-            } else {
-                await TrackPlayer.pause();
-            }
+            await TrackPlayer.pause();
         } else {
-            // Audio interruption ended
             await TrackPlayer.play();
         }
     });
+
 };

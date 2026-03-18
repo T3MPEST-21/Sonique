@@ -5,7 +5,7 @@ import { storage } from '../utils/storage';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type BackgroundStyle = 'solid' | 'glass' | 'mesh';
 export type HapticLevel = 'none' | 'light' | 'medium' | 'heavy';
-export type FontSizeScale = 'small' | 'standard' | 'large';
+export type FontSizeScale = 'small' | 'medium' | 'large';
 
 interface ThemeState {
     mode: ThemeMode;
@@ -15,8 +15,6 @@ interface ThemeState {
     cornerRadius: number;
     glassIntensity: number;
     hapticLevel: HapticLevel;
-    crossfadeEnabled: boolean;
-    crossfadeDuration: number; // seconds: 2 | 4 | 6 | 8
 
     // Actions
     updateTheme: (updates: Partial<Omit<ThemeState, 'updateTheme' | 'resetToDefaults'>>) => void;
@@ -27,12 +25,10 @@ const DEFAULT_THEME: Omit<ThemeState, 'updateTheme' | 'resetToDefaults'> = {
     mode: 'dark',
     accentColor: '#fc3c44',
     backgroundStyle: 'solid',
-    fontSizeScale: 'standard',
+    fontSizeScale: 'medium',
     cornerRadius: 12,
     glassIntensity: 0.5,
     hapticLevel: 'medium',
-    crossfadeEnabled: false,
-    crossfadeDuration: 4,
 };
 
 export const useThemeStore = create<ThemeState>()(

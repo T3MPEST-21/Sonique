@@ -31,7 +31,7 @@ export const darkPalette = {
 
 const FONT_SCALES: Record<FontSizeScale, number> = {
     small: 0.85,
-    standard: 1.0,
+    medium: 1.0,
     large: 1.2,
 };
 

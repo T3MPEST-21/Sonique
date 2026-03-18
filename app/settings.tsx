@@ -145,7 +145,7 @@ export default function SettingsScreen() {
                 {/* Typography */}
                 {renderSection('TYPOGRAPHY', (
                     <View style={styles.segmentedControl}>
-                        {(['small', 'standard', 'large'] as FontSizeScale[]).map((s) => (
+                        {(['small', 'medium', 'large'] as FontSizeScale[]).map((s) => (
                             <TouchableOpacity
                                 key={s}
                                 onPress={() => theme.updateTheme({ fontSizeScale: s })}
@@ -206,46 +206,6 @@ export default function SettingsScreen() {
                     </View>
                 ))}
 
-                {/* Crossfade */}
-                {renderSection('CROSSFADE', (
-                    <>
-                        <View style={styles.row}>
-                            <Text style={[styles.rowLabel, { color: colors.text, fontSize: fonts.sm }]}>Enable Crossfade</Text>
-                            <TouchableOpacity
-                                onPress={() => theme.updateTheme({ crossfadeEnabled: !theme.crossfadeEnabled })}
-                                style={[styles.toggle, { backgroundColor: theme.crossfadeEnabled ? colors.primary : colors.border }]}
-                            >
-                                <View style={[styles.toggleThumb, { left: theme.crossfadeEnabled ? 22 : 2 }]} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {theme.crossfadeEnabled && (
-                            <View style={[styles.item, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-                                <Text style={[styles.itemLabel, { color: colors.text, fontSize: fonts.sm }]}>Duration</Text>
-                                <View style={styles.segmentedControl}>
-                                    {[2, 4, 6, 8].map((s) => (
-                                        <TouchableOpacity
-                                            key={s}
-                                            onPress={() => theme.updateTheme({ crossfadeDuration: s })}
-                                            style={[
-                                                styles.segment,
-                                                theme.crossfadeDuration === s && { backgroundColor: colors.primary }
-                                            ]}
-                                        >
-                                            <Text style={[
-                                                styles.segmentText,
-                                                { fontSize: fonts.xs },
-                                                theme.crossfadeDuration === s ? { color: '#fff', fontWeight: '700' } : { color: colors.textMuted }
-                                            ]}>
-                                                {s}s
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-                    </>
-                ))}
 
                 <TouchableOpacity
                     style={[styles.resetBtn, { backgroundColor: colors.danger + '20' }]}
