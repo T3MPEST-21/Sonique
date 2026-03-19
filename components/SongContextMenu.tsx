@@ -1,9 +1,10 @@
+import { MoodPickerModal } from '@/components/MoodPickerModal';
 import { useTheme } from '@/constants/theme';
 import { Track, useLibraryStore } from '@/stores/libraryStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Modal,
     Pressable,
@@ -26,6 +27,7 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
     const { toggleFavorite, isFavorite } = useLibraryStore();
     const { queue, play } = usePlayerStore();
     const favorite = isFavorite(track.id);
+    const [moodPickerVisible, setMoodPickerVisible] = useState(false);
 
     const handlePlayNext = () => {
         onClose();
@@ -51,6 +53,7 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
             color: favorite ? colors.danger : undefined,
         },
         { icon: 'person', label: 'Go to Artist', action: handleGoToArtist },
+        { icon: 'pricetag-outline', label: 'Tag Mood', action: () => { onClose(); setTimeout(() => setMoodPickerVisible(true), 300); } },
     ];
 
     if (onRemove) {
@@ -63,15 +66,16 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
     }
 
     return (
-        <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-            <Pressable style={styles.backdrop} onPress={onClose}>
-                <View style={[styles.sheet, { backgroundColor: colors.backgroundLight, borderTopLeftRadius: cornerRadius, borderTopRightRadius: cornerRadius }]}>
-                    {/* Track info header */}
-                    <View style={styles.header}>
-                        <Text style={[styles.trackTitle, { color: colors.text, fontSize: fonts.md }]} numberOfLines={1}>{track.title}</Text>
-                        <Text style={[styles.trackArtist, { color: colors.textMuted, fontSize: fonts.sm }]} numberOfLines={1}>{track.artist}</Text>
-                    </View>
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <>
+            <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+                <Pressable style={styles.backdrop} onPress={onClose}>
+                    <View style={[styles.sheet, { backgroundColor: colors.backgroundLight, borderTopLeftRadius: cornerRadius, borderTopRightRadius: cornerRadius }]}>
+                        {/* Track info header */}
+                        <View style={styles.header}>
+                            <Text style={[styles.trackTitle, { color: colors.text, fontSize: fonts.md }]} numberOfLines={1}>{track.title}</Text>
+                            <Text style={[styles.trackArtist, { color: colors.textMuted, fontSize: fonts.sm }]} numberOfLines={1}>{track.artist}</Text>
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     {menuItems.map((item) => (
                         <TouchableOpacity key={item.label} style={styles.item} onPress={item.action}>
@@ -89,7 +93,13 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
                 </View>
             </Pressable>
         </Modal>
-    );
+
+        <MoodPickerModal
+            visible={moodPickerVisible}
+            trackId={track.id}
+            onClose={() => setMoodPickerVisible(false)}
+        />
+    </>);
 };
 
 const styles = StyleSheet.create({

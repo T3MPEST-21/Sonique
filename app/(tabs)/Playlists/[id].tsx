@@ -2,7 +2,7 @@ import { GeneratedArtwork } from '@/components/GeneratedArtwork';
 import { SongList } from '@/components/SongList';
 import { SongPickerModal } from '@/components/SongPickerModal';
 import { useTheme } from '@/constants/theme';
-import { SortBy, useLibraryStore } from '@/stores/libraryStore';
+import { SortBy, Track, useLibraryStore } from '@/stores/libraryStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,6 +36,7 @@ export default function PlaylistDetailScreen() {
     const playlist = playlists.find(p => p.id === id);
 
     const [reorderMode, setReorderMode] = useState(false);
+    const [focusedTrackId, setFocusedTrackId] = useState<string | null>(null);
     const [showMenu, setShowMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [showRename, setShowRename] = useState(false);
@@ -67,57 +68,16 @@ export default function PlaylistDetailScreen() {
         }
     };
 
-    // Hold-to-accelerate refs
-    const holdInterval = useRef<NodeJS.Timeout | null>(null);
-    const holdStart = useRef(0);
-
-    const clearHold = () => {
-        if (holdInterval.current) {
-            clearTimeout(holdInterval.current);
-            holdInterval.current = null;
-        }
-    };
-
-    const handleMove = (index: number, direction: 'up' | 'down') => {
-        if (!id) return;
-        const playlistTracks = getPlaylistTracks(id);
+    const handleMove = (direction: 'up' | 'down') => {
+        if (!id || !focusedTrackId) return;
+        const currentTracks = getPlaylistTracks(id);
+        const index = currentTracks.findIndex(t => t.id === focusedTrackId);
+        
         if (direction === 'up' && index > 0) {
             reorderPlaylistTracks(id, index, index - 1);
-        } else if (direction === 'down' && index < playlistTracks.length - 1) {
+        } else if (direction === 'down' && index < currentTracks.length - 1) {
             reorderPlaylistTracks(id, index, index + 1);
         }
-    };
-
-    const handleMoveStart = (index: number, direction: 'up' | 'down') => {
-        clearHold();
-
-        let currentIndex = index;
-        const action = () => {
-            const playlistTracks = getPlaylistTracks(id!);
-            if (direction === 'up' && currentIndex > 0) {
-                reorderPlaylistTracks(id!, currentIndex, currentIndex - 1);
-                currentIndex--;
-                return true;
-            } else if (direction === 'down' && currentIndex < playlistTracks.length - 1) {
-                reorderPlaylistTracks(id!, currentIndex, currentIndex + 1);
-                currentIndex++;
-                return true;
-            }
-            return false;
-        };
-
-        const moveStep = () => {
-            if (!action()) {
-                clearHold();
-                return;
-            }
-            const elapsed = Date.now() - holdStart.current;
-            const nextDelay = elapsed > 800 ? 80 : 250;
-            holdInterval.current = setTimeout(moveStep, nextDelay) as any;
-        };
-
-        holdStart.current = Date.now();
-        moveStep(); // first step and start the chain
     };
 
     const handlePickArtwork = async () => {
@@ -202,7 +162,7 @@ export default function PlaylistDetailScreen() {
                         {reorderMode ? (
                             <>
                                 <Text style={[styles.headerTitle, { color: colors.text, fontSize: fonts.md }]}>Reorder</Text>
-                                <TouchableOpacity onPress={() => setReorderMode(false)} style={[styles.doneBtn, { backgroundColor: colors.primary }]}>
+                                <TouchableOpacity onPress={() => { setReorderMode(false); setFocusedTrackId(null); }} style={[styles.doneBtn, { backgroundColor: colors.primary }]}>
                                     <Text style={[styles.doneBtnText, { fontSize: fonts.xs }]}>Done</Text>
                                 </TouchableOpacity>
                             </>
@@ -297,10 +257,49 @@ export default function PlaylistDetailScreen() {
             <SongList
                 tracks={filteredTracks}
                 reorderMode={reorderMode}
-                onMoveStart={handleMoveStart}
-                onMoveEnd={clearHold}
+                focusedTrackId={focusedTrackId}
+                onSelect={(track: Track) => {
+                    if (reorderMode) {
+                        setFocusedTrackId(track.id === focusedTrackId ? null : track.id);
+                    } else {
+                        play(track, filteredTracks);
+                    }
+                }}
                 onRemove={(track) => id && removeTrackFromPlaylist(id, track.id)}
             />
+
+            {/* Global Reorder Bar */}
+            {reorderMode && (
+                <View style={[styles.reorderBar, { 
+                    backgroundColor: isDark ? '#222' : '#fff',
+                    bottom: 0,
+                    paddingBottom: Math.max(insets.bottom, 20)
+                }]}>
+                    <View style={styles.reorderInfo}>
+                        <Text style={[styles.reorderInfoText, { color: colors.text, fontSize: fonts.sm }]} numberOfLines={1}>
+                            {focusedTrackId 
+                                ? filteredTracks.find(t => t.id === focusedTrackId)?.title || 'Selected Song'
+                                : 'Select a song to move'}
+                        </Text>
+                    </View>
+                    <View style={styles.reorderControls}>
+                        <TouchableOpacity 
+                            onPress={() => handleMove('up')} 
+                            disabled={!focusedTrackId}
+                            style={[styles.reorderActionBtn, !focusedTrackId && { opacity: 0.3 }]}
+                        >
+                            <Ionicons name="arrow-up" size={24} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={() => handleMove('down')} 
+                            disabled={!focusedTrackId}
+                            style={[styles.reorderActionBtn, !focusedTrackId && { opacity: 0.3 }]}
+                        >
+                            <Ionicons name="arrow-down" size={24} color={colors.primary} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
 
             {/* Add Songs FAB */}
             {!reorderMode && (
@@ -460,4 +459,34 @@ const styles = StyleSheet.create({
     renameActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
     renameCancel: { paddingHorizontal: 16, paddingVertical: 10 },
     renameConfirm: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+    
+    // Global Reorder Bar
+    reorderBar: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        zIndex: 1000,
+    },
+    reorderInfo: { flex: 1 },
+    reorderInfoText: { fontWeight: '600' },
+    reorderControls: { flexDirection: 'row', gap: 15 },
+    reorderActionBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.03)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

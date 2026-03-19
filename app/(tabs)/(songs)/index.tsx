@@ -1,29 +1,44 @@
 import { SongList } from '@/components/SongList';
 import { useTheme } from '@/constants/theme';
 import { useLibraryStore } from '@/stores/libraryStore';
+import { useMoodStore } from '@/stores/moodStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SortMode = 'title' | 'artist' | 'default';
 
 const SongsScreen = () => {
     const { tracks, loadFromCache, isLoading, error, initialized, fetchTracks } = useLibraryStore();
+    const { moods, trackMoodMap, getMoodTrackIds, deleteMood } = useMoodStore();
     const insets = useSafeAreaInsets();
     const { colors, fonts, spacing, isDark, cornerRadius } = useTheme();
     const [showMenu, setShowMenu] = useState(false);
     const [sortMode, setSortMode] = useState<SortMode>('default');
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeMoodId, setActiveMoodId] = useState<string | 'all'>('all');
+    const [actionMoodId, setActionMoodId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!initialized) loadFromCache();
     }, []);
 
+    const taggedMoods = React.useMemo(() => {
+        const activeIds = new Set(Object.values(trackMoodMap).flat());
+        return moods.filter(m => activeIds.has(m.id));
+    }, [moods, trackMoodMap]);
+
     const filteredAndSortedTracks = React.useMemo(() => {
         let result = [...tracks];
+
+        // Filter by mood
+        if (activeMoodId !== 'all') {
+            const moodTracks = new Set(getMoodTrackIds(activeMoodId));
+            result = result.filter(t => moodTracks.has(t.id));
+        }
 
         // Filter by search query
         if (searchQuery.trim()) {
@@ -39,7 +54,24 @@ const SongsScreen = () => {
         else if (sortMode === 'artist') result.sort((a, b) => a.artist.localeCompare(b.artist));
 
         return result;
-    }, [tracks, sortMode, searchQuery]);
+    }, [tracks, sortMode, searchQuery, activeMoodId, moods]);
+
+    const handleDeleteMood = (moodId: string, moodName: string) => {
+        const taggedCount = getMoodTrackIds(moodId).length;
+        Alert.alert(
+            `Delete '${moodName}'?`,
+            taggedCount > 0 
+                ? `This mood is tagged to ${taggedCount} song${taggedCount > 1 ? 's' : ''}. Deleting it will untag them.` 
+                : "Are you sure you want to delete this mood?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: () => {
+                    deleteMood(moodId);
+                    if (activeMoodId === moodId) setActiveMoodId('all');
+                } }
+            ]
+        );
+    };
 
     if (isLoading && tracks.length === 0) {
         return (
@@ -156,6 +188,90 @@ const SongsScreen = () => {
                 </View>
             )}
 
+            {/* Mood Chips */}
+            {taggedMoods.length > 0 && (
+                <View style={{ marginTop: 4 }}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: spacing.horizontal, gap: 8, paddingBottom: 12 }}
+                    >
+                        <TouchableOpacity
+                            style={[styles.moodChip, { backgroundColor: activeMoodId === 'all' ? colors.primary + '33' : colors.card, borderColor: activeMoodId === 'all' ? colors.primary : colors.border }]}
+                            onPress={() => setActiveMoodId('all')}
+                        >
+                            <Text style={[{ color: activeMoodId === 'all' ? colors.primary : colors.text, fontSize: fonts.sm, fontWeight: activeMoodId === 'all' ? '700' : '500' }]}>All Songs</Text>
+                        </TouchableOpacity>
+
+                        {taggedMoods.map(mood => (
+                            <TouchableOpacity
+                                key={mood.id}
+                                style={[styles.moodChip, { backgroundColor: activeMoodId === mood.id ? mood.color + '33' : colors.card, borderColor: activeMoodId === mood.id ? mood.color : colors.border }]}
+                                onPress={() => setActiveMoodId(mood.id)}
+                            >
+                                <Ionicons name={mood.icon as any} size={14} color={activeMoodId === mood.id ? mood.color : colors.textMuted} />
+                                <Text style={[{ color: activeMoodId === mood.id ? mood.color : colors.text, fontSize: fonts.sm, fontWeight: activeMoodId === mood.id ? '700' : '500' }]}>{mood.name}</Text>
+                                <TouchableOpacity 
+                                    style={{ paddingLeft: 6, marginLeft: 2 }} 
+                                    onPress={(e) => { e.stopPropagation(); setActionMoodId(mood.id); }}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                    <Ionicons name="ellipsis-vertical" size={14} color={activeMoodId === mood.id ? mood.color : colors.textMuted} />
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+
+            {/* Mood Action Modal */}
+            <Modal visible={!!actionMoodId} transparent animationType="fade" onRequestClose={() => setActionMoodId(null)}>
+                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setActionMoodId(null)}>
+                    <View style={[styles.moodMenuSheet, { backgroundColor: isDark ? '#2a2a2a' : colors.card, borderRadius: cornerRadius }]}>
+                        {(() => {
+                            const selectedMood = moods.find(m => m.id === actionMoodId);
+                            if (!selectedMood) return null;
+                            const moodTracks = tracks.filter(t => new Set(getMoodTrackIds(selectedMood.id)).has(t.id));
+
+                            return (
+                                <>
+                                    <View style={styles.dropHeader}>
+                                        <Text style={[styles.dropTitle, { color: colors.textMuted, fontSize: fonts.xs }]}>{selectedMood.name.toUpperCase()} MOOD</Text>
+                                    </View>
+                                    
+                                    <TouchableOpacity style={styles.dropItem} onPress={() => {
+                                        if (moodTracks.length > 0) usePlayerStore.getState().play(moodTracks[0], moodTracks);
+                                        setActionMoodId(null);
+                                    }}>
+                                        <Ionicons name="play" size={18} color={selectedMood.color} />
+                                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Play All</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity style={styles.dropItem} onPress={() => {
+                                        const shuffled = shuffleArray([...moodTracks]);
+                                        if (shuffled.length > 0) usePlayerStore.getState().play(shuffled[0], shuffled);
+                                        setActionMoodId(null);
+                                    }}>
+                                        <Ionicons name="shuffle" size={18} color={colors.text} />
+                                        <Text style={[styles.dropLabel, { color: colors.text, fontSize: fonts.sm }]}>Shuffle</Text>
+                                    </TouchableOpacity>
+
+                                    {!selectedMood.isDefault && (
+                                        <TouchableOpacity style={styles.dropItem} onPress={() => {
+                                            setActionMoodId(null);
+                                            handleDeleteMood(selectedMood.id, selectedMood.name);
+                                        }}>
+                                            <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                                            <Text style={[styles.dropLabel, { color: colors.danger, fontSize: fonts.sm }]}>Delete Mood</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
             <SongList tracks={filteredAndSortedTracks} />
         </View>
     );
@@ -231,4 +347,24 @@ const styles = StyleSheet.create({
     dropItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
     dropLabel: { flex: 1 },
     divider: { height: 1, marginHorizontal: 12, marginVertical: 4 },
+    moodChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    moodMenuSheet: {
+        width: 200,
+        paddingVertical: 8,
+        elevation: 10,
+    },
 });

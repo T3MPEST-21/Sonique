@@ -2,6 +2,7 @@ import { PlaylistPickerModal } from '@/components/PlaylistPickerModal';
 import { SongContextMenu } from '@/components/SongContextMenu';
 import { useTheme } from '@/constants/theme';
 import { Track } from '@/stores/libraryStore';
+import { useMoodStore } from '@/stores/moodStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -22,6 +23,8 @@ interface SongListProps {
     onSelectionChange?: (ids: Set<string>) => void;
     /** Reorder mode — shows ↑↓ arrows instead of ⋮ */
     reorderMode?: boolean;
+    focusedTrackId?: string | null;
+    onSelect?: (track: Track) => void;
     onMoveStart?: (index: number, direction: 'up' | 'down') => void;
     onMoveEnd?: () => void;
     onRemove?: (track: Track) => void;
@@ -39,6 +42,7 @@ const SongItem = ({
     onMoveStart,
     onMoveEnd,
     onMenuPress,
+    isFocused,
 }: {
     track: Track;
     index: number;
@@ -48,14 +52,22 @@ const SongItem = ({
     isSelected?: boolean;
     onToggleSelect?: () => void;
     reorderMode?: boolean;
+    isFocused?: boolean;
     onMoveStart?: (direction: 'up' | 'down') => void;
     onMoveEnd?: () => void;
     onMenuPress: () => void;
 }) => {
     const { colors, fonts, cornerRadius } = useTheme();
+    const { getTrackMoods } = useMoodStore();
+    const trackMoods = getTrackMoods(track.id);
+
     return (
         <TouchableOpacity
-            style={[styles.itemContainer, isPlaying && { backgroundColor: colors.primary + '15' }]}
+            style={[
+                styles.itemContainer, 
+                isPlaying && { backgroundColor: colors.primary + '15' },
+                isFocused && { backgroundColor: colors.primary + '30', borderLeftWidth: 4, borderLeftColor: colors.primary }
+            ]}
             onPress={selectionMode ? onToggleSelect : onSelect}
             activeOpacity={0.7}
         >
@@ -69,21 +81,8 @@ const SongItem = ({
                     />
                 </TouchableOpacity>
             ) : reorderMode ? (
-                <View style={styles.reorderButtons}>
-                    <Pressable
-                        onPressIn={() => onMoveStart?.('up')}
-                        onPressOut={onMoveEnd}
-                        style={({ pressed }) => [styles.arrowBtn, pressed && { opacity: 0.5 }]}
-                    >
-                        <Ionicons name="chevron-up" size={18} color={colors.textMuted} />
-                    </Pressable>
-                    <Pressable
-                        onPressIn={() => onMoveStart?.('down')}
-                        onPressOut={onMoveEnd}
-                        style={({ pressed }) => [styles.arrowBtn, pressed && { opacity: 0.5 }]}
-                    >
-                        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
-                    </Pressable>
+                <View style={[styles.artworkPlaceholder, { borderRadius: cornerRadius * 0.7, backgroundColor: colors.backgroundLight, opacity: 0.6 }]}>
+                    <Ionicons name="reorder-three" size={20} color={isFocused ? colors.primary : colors.textMuted} />
                 </View>
             ) : (
                 <View style={[styles.artworkPlaceholder, { borderRadius: cornerRadius * 0.7, backgroundColor: colors.backgroundLight }]}>
@@ -96,9 +95,23 @@ const SongItem = ({
                 <Text numberOfLines={1} style={[styles.title, { color: isPlaying ? colors.primary : colors.text, fontSize: fonts.sm }]}>
                     {track.title || 'Unknown Title'}
                 </Text>
-                <Text numberOfLines={1} style={[styles.artist, { color: colors.textMuted, fontSize: fonts.xs }]}>
-                    {track.artist || 'Unknown Artist'}
-                </Text>
+                <View style={styles.artistRow}>
+                    <Text numberOfLines={1} style={[styles.artist, { color: colors.textMuted, fontSize: fonts.xs }, trackMoods.length > 0 && { flexShrink: 1 }]}>
+                        {track.artist || 'Unknown Artist'}
+                    </Text>
+                    {trackMoods.length > 0 && (
+                        <View style={styles.moodMiniContainer}>
+                            {trackMoods.slice(0, 3).map(m => (
+                                <View key={m.id} style={[styles.moodMiniBadge, { backgroundColor: m.color + '20' }]}>
+                                    <Ionicons name={m.icon as any} size={10} color={m.color} />
+                                </View>
+                            ))}
+                            {trackMoods.length > 3 && (
+                                <Text style={{ color: colors.textMuted, fontSize: fonts.xs - 2, marginLeft: 2 }}>+{trackMoods.length - 3}</Text>
+                            )}
+                        </View>
+                    )}
+                </View>
             </View>
 
             {/* Right: ⋮ menu (hidden in selection/reorder mode) */}
@@ -117,6 +130,8 @@ export const SongList = ({
     selectedIds,
     onSelectionChange,
     reorderMode,
+    focusedTrackId,
+    onSelect,
     onMoveStart,
     onMoveEnd,
     onRemove,
@@ -142,7 +157,8 @@ export const SongList = ({
                         track={item}
                         index={index}
                         isPlaying={activeTrack?.id === item.id}
-                        onSelect={() => play(item, tracks)}
+                        isFocused={focusedTrackId === item.id}
+                        onSelect={() => onSelect ? onSelect(item) : play(item, tracks)}
                         selectionMode={selectionMode}
                         isSelected={selectedIds?.has(item.id)}
                         onToggleSelect={() => toggleSelect(item.id)}
@@ -228,8 +244,26 @@ const styles = StyleSheet.create({
     title: {
         fontWeight: '600',
     },
+    artistRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
     artist: {
         marginTop: 4,
+    },
+    moodMiniContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        marginTop: 4,
+    },
+    moodMiniBadge: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     menuBtn: {
         paddingHorizontal: 6,
