@@ -1,10 +1,9 @@
-import { MoodPickerModal } from '@/components/MoodPickerModal';
 import { useTheme } from '@/constants/theme';
 import { Track, useLibraryStore } from '@/stores/libraryStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
     Modal,
     Pressable,
@@ -19,15 +18,15 @@ interface Props {
     visible: boolean;
     onClose: () => void;
     onAddToPlaylist: () => void; // Opens PlaylistPickerModal
+    onTagMood: () => void; // Opens MoodPickerModal
     onRemove?: () => void; // Optional: Remove from current playlist
 }
 
-export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAddToPlaylist, onRemove }) => {
+export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAddToPlaylist, onTagMood, onRemove }) => {
     const { colors, fonts, cornerRadius } = useTheme();
     const { toggleFavorite, isFavorite } = useLibraryStore();
     const { queue, play } = usePlayerStore();
     const favorite = isFavorite(track.id);
-    const [moodPickerVisible, setMoodPickerVisible] = useState(false);
 
     const handlePlayNext = () => {
         onClose();
@@ -53,7 +52,7 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
             color: favorite ? colors.danger : undefined,
         },
         { icon: 'person', label: 'Go to Artist', action: handleGoToArtist },
-        { icon: 'pricetag-outline', label: 'Tag Mood', action: () => { onClose(); setTimeout(() => setMoodPickerVisible(true), 300); } },
+        { icon: 'pricetag-outline', label: 'Tag Mood', action: () => { onClose(); setTimeout(onTagMood, 300); } },
     ];
 
     if (onRemove) {
@@ -66,8 +65,7 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
     }
 
     return (
-        <>
-            <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+        <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
                 <Pressable style={styles.backdrop} onPress={onClose}>
                     <View style={[styles.sheet, { backgroundColor: colors.backgroundLight, borderTopLeftRadius: cornerRadius, borderTopRightRadius: cornerRadius }]}>
                         {/* Track info header */}
@@ -93,13 +91,7 @@ export const SongContextMenu: React.FC<Props> = ({ track, visible, onClose, onAd
                 </View>
             </Pressable>
         </Modal>
-
-        <MoodPickerModal
-            visible={moodPickerVisible}
-            trackId={track.id}
-            onClose={() => setMoodPickerVisible(false)}
-        />
-    </>);
+    );
 };
 
 const styles = StyleSheet.create({

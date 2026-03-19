@@ -1,3 +1,4 @@
+import { MoodPickerModal } from '@/components/MoodPickerModal';
 import { PlaylistPickerModal } from '@/components/PlaylistPickerModal';
 import { SongContextMenu } from '@/components/SongContextMenu';
 import { useTheme } from '@/constants/theme';
@@ -138,8 +139,9 @@ export const SongList = ({
 }: SongListProps) => {
     const { colors, fonts } = useTheme();
     const { play, activeTrack } = usePlayerStore();
-    const [menuTrack, setMenuTrack] = useState<Track | null>(null);
-    const [pickerVisible, setPickerVisible] = useState(false);
+    const [contextMenuTrack, setContextMenuTrack] = useState<Track | null>(null);
+    const [playlistPickerTrack, setPlaylistPickerTrack] = useState<Track | null>(null);
+    const [moodPickerTrack, setMoodPickerTrack] = useState<Track | null>(null);
 
     const toggleSelect = (id: string) => {
         if (!selectedIds || !onSelectionChange) return;
@@ -165,7 +167,7 @@ export const SongList = ({
                         reorderMode={reorderMode}
                         onMoveStart={(dir) => onMoveStart?.(index, dir)}
                         onMoveEnd={onMoveEnd}
-                        onMenuPress={() => setMenuTrack(item)}
+                        onMenuPress={() => setContextMenuTrack(item)}
                     />
                 )}
                 keyExtractor={(item) => item.id}
@@ -181,22 +183,38 @@ export const SongList = ({
             />
 
             {/* Song context menu */}
-            {menuTrack && (
+            {contextMenuTrack && (
                 <SongContextMenu
-                    track={menuTrack}
-                    visible={!!menuTrack}
-                    onClose={() => setMenuTrack(null)}
-                    onAddToPlaylist={() => setPickerVisible(true)}
-                    onRemove={onRemove ? () => onRemove(menuTrack) : undefined}
+                    track={contextMenuTrack}
+                    visible={!!contextMenuTrack}
+                    onClose={() => setContextMenuTrack(null)}
+                    onAddToPlaylist={() => {
+                        setPlaylistPickerTrack(contextMenuTrack);
+                        setContextMenuTrack(null);
+                    }}
+                    onTagMood={() => {
+                        setMoodPickerTrack(contextMenuTrack);
+                        setContextMenuTrack(null);
+                    }}
+                    onRemove={onRemove ? () => onRemove(contextMenuTrack) : undefined}
                 />
             )}
 
             {/* Playlist picker */}
-            {menuTrack && (
+            {playlistPickerTrack && (
                 <PlaylistPickerModal
-                    visible={pickerVisible}
-                    trackIds={[menuTrack.id]}
-                    onClose={() => { setPickerVisible(false); setMenuTrack(null); }}
+                    visible={!!playlistPickerTrack}
+                    trackIds={[playlistPickerTrack.id]}
+                    onClose={() => setPlaylistPickerTrack(null)}
+                />
+            )}
+
+            {/* Mood picker */}
+            {moodPickerTrack && (
+                <MoodPickerModal
+                    visible={!!moodPickerTrack}
+                    trackId={moodPickerTrack.id}
+                    onClose={() => setMoodPickerTrack(null)}
                 />
             )}
         </View>

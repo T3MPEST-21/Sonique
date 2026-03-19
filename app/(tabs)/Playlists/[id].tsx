@@ -7,7 +7,7 @@ import { usePlayerStore } from '@/stores/playerStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     Image,
@@ -72,7 +72,7 @@ export default function PlaylistDetailScreen() {
         if (!id || !focusedTrackId) return;
         const currentTracks = getPlaylistTracks(id);
         const index = currentTracks.findIndex(t => t.id === focusedTrackId);
-        
+
         if (direction === 'up' && index > 0) {
             reorderPlaylistTracks(id, index, index - 1);
         } else if (direction === 'down' && index < currentTracks.length - 1) {
@@ -270,28 +270,33 @@ export default function PlaylistDetailScreen() {
 
             {/* Global Reorder Bar */}
             {reorderMode && (
-                <View style={[styles.reorderBar, { 
+                <View style={[styles.reorderBar, {
                     backgroundColor: isDark ? '#222' : '#fff',
                     bottom: 0,
                     paddingBottom: Math.max(insets.bottom, 20)
                 }]}>
-                    <View style={styles.reorderInfo}>
-                        <Text style={[styles.reorderInfoText, { color: colors.text, fontSize: fonts.sm }]} numberOfLines={1}>
-                            {focusedTrackId 
-                                ? filteredTracks.find(t => t.id === focusedTrackId)?.title || 'Selected Song'
-                                : 'Select a song to move'}
-                        </Text>
-                    </View>
+                    {/* move up */}
                     <View style={styles.reorderControls}>
-                        <TouchableOpacity 
-                            onPress={() => handleMove('up')} 
+                        <TouchableOpacity
+                            onPress={() => handleMove('up')}
                             disabled={!focusedTrackId}
                             style={[styles.reorderActionBtn, !focusedTrackId && { opacity: 0.3 }]}
                         >
                             <Ionicons name="arrow-up" size={24} color={colors.primary} />
                         </TouchableOpacity>
-                        <TouchableOpacity 
-                            onPress={() => handleMove('down')} 
+
+                        {/* info */}
+                        <View style={styles.reorderInfo}>
+                            <Text style={[styles.reorderInfoText, { color: colors.text, fontSize: fonts.sm }]} numberOfLines={1}>
+                                {focusedTrackId
+                                    ? filteredTracks.find(t => t.id === focusedTrackId)?.title || 'Selected Song'
+                                    : 'Select a song to move'}
+                            </Text>
+                        </View>
+
+                        {/* move down */}
+                        <TouchableOpacity
+                            onPress={() => handleMove('down')}
                             disabled={!focusedTrackId}
                             style={[styles.reorderActionBtn, !focusedTrackId && { opacity: 0.3 }]}
                         >
@@ -459,16 +464,18 @@ const styles = StyleSheet.create({
     renameActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
     renameCancel: { paddingHorizontal: 16, paddingVertical: 10 },
     renameConfirm: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
-    
+
     // Global Reorder Bar
     reorderBar: {
         position: 'absolute',
         left: 0,
         right: 0,
+        marginVertical: 100,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 12,
+        paddingTop: 5,
+        paddingBottom: 5,
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.05)',
         elevation: 20,
@@ -477,10 +484,19 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 10,
         zIndex: 1000,
+        borderRadius: 15,
     },
-    reorderInfo: { flex: 1 },
-    reorderInfoText: { fontWeight: '600' },
-    reorderControls: { flexDirection: 'row', gap: 15 },
+    reorderInfo: {
+        flex: 1,
+        alignContent: "center",
+        justifyContent: "center",
+        paddingHorizontal: 0,
+    },
+    reorderInfoText: {
+        fontWeight: '600',
+        textAlign: "center",
+    },
+    reorderControls: { flexDirection: 'row' },
     reorderActionBtn: {
         width: 44,
         height: 44,
